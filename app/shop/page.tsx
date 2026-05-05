@@ -1,0 +1,265 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { useRouter, useSearchParams } from "next/navigation";
+
+export default function ShopPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [products, setProducts] = useState<any[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
+  const [openCart, setOpenCart] = useState(false);
+
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [qty, setQty] = useState(1);
+
+  const [category, setCategory] = useState("全部");
+  const [showEmptyAlert, setShowEmptyAlert] = useState(false);
+
+  const fetchProducts = async () => {
+    const snapshot = await getDocs(collection(db, "products"));
+    const list: any[] = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.active !== false) {
+        list.push({ id: doc.id, ...data });
+      }
+    });
+
+    list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    setProducts(list);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    const saved = localStorage.getItem("cart");
+    if (saved) setCart(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    const uid = searchParams.get("uid");
+    if (uid) {
+      localStorage.setItem("lineUserId", uid);
+    }
+  }, [searchParams]);
+
+  const filteredProducts =
+    category === "全部"
+      ? products
+      : products.filter((p) => p.category === category);
+
+  const addToCart = (item: any) => {
+    const exist = cart.find((c) => c.id === item.id);
+
+    let newCart;
+    if (exist) {
+      newCart = cart.map((c) =>
+        c.id === item.id ? { ...c, qty: c.qty + item.qty } : c
+      );
+    } else {
+      newCart = [...cart, item];
+    }
+
+    setCart(newCart);
+    localStorage.setItem("cart", JSON.stringify(newCart));
+  };
+
+  const changeQty = (id: string, delta: number) => {
+    const newCart = cart.map((item) =>
+      item.id === id
+        ? { ...item, qty: Math.max(1, item.qty + delta) }
+        : item
+    );
+    setCart(newCart);
+    localStorage.setItem("cart", JSON.stringify(newCart));
+  };
+
+  const removeItem = (id: string) => {
+    const newCart = cart.filter((item) => item.id !== id);
+    setCart(newCart);
+    localStorage.setItem("cart", JSON.stringify(newCart));
+  };
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  return (
+    <div
+      className="min-h-screen p-3"
+      style={{
+        background:
+          "linear-gradient(to bottom, #4fc3f7 0%, #81d4fa 30%, #c8e6c9 60%, #66bb6a 100%)",
+      }}
+    >
+
+      {/* LOGO */}
+      <div className="text-center mb-4">
+        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-500 via-lime-400 to-blue-500 text-transparent bg-clip-text drop-shadow">
+          🌾 九斗農業生產合作社
+        </h1>
+        <p className="text-sm text-green-900 font-semibold mt-1">
+          新鮮直送｜健康安心｜在地農產
+        </p>
+      </div>
+
+      {/* 購物車 */}
+      <div className={`fixed top-0 left-0 h-full bg-white/95 backdrop-blur shadow-2xl z-50 transition-all ${openCart ? "w-72" : "w-14"}`}>
+        {!openCart && (
+          <button onClick={() => setOpenCart(true)} className="w-full h-full flex flex-col items-center justify-center text-xs">
+            🛒
+            <span className="mt-1">${total}</span>
+          </button>
+        )}
+
+        {openCart && (
+          <div className="p-3 h-full flex flex-col">
+            <div className="flex justify-between mb-2">
+              <h2 className="font-bold">購物車</h2>
+              <button onClick={() => setOpenCart(false)}>✕</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {cart.map((item) => (
+                <div key={item.id} className="flex gap-2 mb-3">
+                  <img src={item.image} className="w-14 h-14 object-cover rounded" />
+                  <div className="flex-1 text-sm">
+                    <p className="font-bold">{item.name}</p>
+                    <p>${item.price}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => changeQty(item.id, -1)}>－</button>
+                      <span>{item.qty}</span>
+                      <button onClick={() => changeQty(item.id, 1)}>＋</button>
+                    </div>
+                    <p>${item.price * item.qty}</p>
+                    <button onClick={() => removeItem(item.id)} className="text-red-500 text-xs">刪除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="font-bold mb-2">總金額：${total}</div>
+
+            <button
+              onClick={() => {
+                if (cart.length === 0) {
+                  setShowEmptyAlert(true);
+                  return;
+                }
+                router.push("/checkout");
+              }}
+              className="bg-green-600 text-white py-3 rounded-lg"
+            >
+              結帳
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 商品 */}
+      <div className="ml-16 bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-lg">
+
+        <div className="sticky top-0 z-40 pb-2">
+          <h1 className="text-lg font-bold mb-2">商品商城</h1>
+
+          <div className="flex gap-2 overflow-x-auto">
+            {["全部", "水果", "蔬菜", "其他"].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={`px-3 py-2 rounded text-sm font-semibold ${
+                  category === c ? "bg-green-500 text-white" : "bg-gray-200"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ⭐ 優化後卡片 */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {filteredProducts.map((item) => (
+            <div key={item.id} className="bg-white rounded-2xl shadow-md p-2 border border-green-100">
+
+              <div className="w-full h-[220px] flex items-center justify-center bg-gradient-to-b from-white to-green-50 rounded">
+                <img
+                  src={item.image}
+                  className="max-h-[200px] object-contain"
+                />
+              </div>
+
+              <p className="font-bold mt-2 text-base leading-tight">
+                {item.name}
+              </p>
+
+              <p className="text-sm text-gray-500 line-clamp-2">
+                {item.description}
+              </p>
+
+              <p className="text-green-600 font-bold text-lg mt-1">
+                ${item.price}
+              </p>
+
+              <button
+                onClick={() => {
+                  setSelectedProduct(item);
+                  setQty(1);
+                }}
+                className="bg-green-500 text-white w-full mt-2 py-3 rounded-xl text-base font-bold active:scale-95"
+              >
+                加入購物車
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 空購物車提示 */}
+      {showEmptyAlert && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl text-center w-64">
+            <p className="mb-4 font-bold text-lg">您還沒選購商品 🛒</p>
+            <button onClick={() => setShowEmptyAlert(false)} className="bg-green-500 text-white px-4 py-2 rounded">
+              確定
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 彈窗保留 */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-4 w-[90%] max-w-sm rounded-xl text-center">
+            <img src={selectedProduct.image} className="w-full h-40 object-contain bg-gray-100 rounded mb-2" />
+            <h2 className="font-bold">{selectedProduct.name}</h2>
+            <p className="text-lg text-green-600 mb-2">${selectedProduct.price}</p>
+            <p className="text-sm text-gray-500 mb-2">{selectedProduct.description}</p>
+
+            <div className="flex justify-center gap-4">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))}>－</button>
+              <span>{qty}</span>
+              <button onClick={() => setQty(q => q + 1)}>＋</button>
+            </div>
+
+            <button
+              onClick={() => {
+                addToCart({ ...selectedProduct, qty });
+                setSelectedProduct(null);
+              }}
+              className="bg-green-500 text-white w-full mt-2 py-2 rounded-lg"
+            >
+              加入
+            </button>
+
+            <button onClick={() => setSelectedProduct(null)} className="mt-2 w-full">
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
