@@ -147,7 +147,7 @@ export default function DashboardPage() {
     const ref = doc(db, "settings", "packaging");
     const snap = await getDoc(ref);
     if (snap.exists()) {
-      setPackaging(snap.data());
+      setPackaging(snap.data() as any);
     }
   };
 
