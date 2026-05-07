@@ -37,15 +37,15 @@ export default function OrdersPage() {
   };
 
   const fetchOrders = async () => {
-    const snapshot = await getDocs(collection(db, "orders"));
-    const list: any[] = [];
+  try {
+    const res = await fetch("/api/orders");
+    const data = await res.json();
 
-    snapshot.forEach((docSnap) => {
-      list.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    setOrders(list);
-  };
+    setOrders(data);
+  } catch (e) {
+    console.error("讀取訂單失敗:", e);
+  }
+};
 
   useEffect(() => {
   fetchOrders();

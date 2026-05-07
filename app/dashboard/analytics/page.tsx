@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+
 import { useRouter } from "next/navigation";
 
 import {
@@ -24,13 +24,18 @@ export default function OpsPage() {
   const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
-    (async () => {
-      const snap = await getDocs(collection(db, "orders"));
-      const list: any[] = [];
-      snap.forEach((d) => list.push(d.data()));
-      setOrders(list);
-    })();
-  }, []);
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("/api/orders");
+      const data = await res.json();
+      setOrders(data);
+    } catch (e) {
+      console.error("讀取 orders 失敗:", e);
+    }
+  };
+
+  fetchOrders();
+}, []);
 
   const toDate = (o: any) =>
     o?.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : null;

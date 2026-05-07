@@ -75,27 +75,29 @@ export default function DashboardPage() {
   const [revenue, setRevenue] = useState(0);
   const [cost, setCost] = useState(0);
   const [profit, setProfit] = useState(0);
+  
   const fetchOrders = async () => {
-  const snapshot = await getDocs(collection(db, "orders"));
-  const list: any[] = [];
+  try {
+    const res = await fetch("/api/orders");
+    const data = await res.json();
 
-  snapshot.forEach((doc) => {
-    list.push(doc.data());
-  });
+    setOrders(data);
 
-  setOrders(list);
+    let totalRevenue = 0;
+    let totalCost = 0;
 
-  let totalRevenue = 0;
-  let totalCost = 0;
+    data.forEach((o: any) => {
+      totalRevenue += o.total || 0;
+      totalCost += (o.costTotal || 0) + (o.packagingCost || 0);
+    });
 
-  list.forEach((o) => {
-    totalRevenue += o.total || 0;
-    totalCost += (o.costTotal || 0) + (o.packagingCost || 0); // ⭐含包裝
-  });
+    setRevenue(totalRevenue);
+    setCost(totalCost);
+    setProfit(totalRevenue - totalCost);
 
-  setRevenue(totalRevenue);
-  setCost(totalCost);
-  setProfit(totalRevenue - totalCost);
+  } catch (e) {
+    console.error("讀取訂單失敗:", e);
+  }
 };
   useEffect(() => {
     if (localStorage.getItem("admin") !== "true") {
@@ -113,29 +115,6 @@ export default function DashboardPage() {
 
     list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     setProducts(list);
-    const fetchOrders = async () => {
-  const snapshot = await getDocs(collection(db, "orders"));
-  const list: any[] = [];
-
-  snapshot.forEach((doc) => {
-    list.push(doc.data());
-  });
-
-  setOrders(list);
-
-  // ⭐計算財務
-  let totalRevenue = 0;
-  let totalCost = 0;
-
-  list.forEach((o) => {
-    totalRevenue += o.total || 0;
-    totalCost += o.costTotal || 0; // ⭐你checkout要有這個
-  });
-
-  setRevenue(totalRevenue);
-  setCost(totalCost);
-  setProfit(totalRevenue - totalCost);
-};
   };
 
   useEffect(() => {
@@ -145,10 +124,16 @@ export default function DashboardPage() {
   // ⭐加在這裡（同一個 useEffect 裡面）
   const fetchPackaging = async () => {
     const ref = doc(db, "settings", "packaging");
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      setPackaging(snap.data() as any);
-    }
+
+try {
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    setPackaging(snap.data() as any);
+  }
+} catch (e) {
+  console.error("Firestore read error:", e);
+}
   };
 
   fetchPackaging();
@@ -157,23 +142,25 @@ export default function DashboardPage() {
 
   // ⭐讀取運費（只保留一份）
   useEffect(() => {
-    const fetchShipping = async () => {
-      try {
-        const ref = doc(db, "settings", "shipping");
-        const snap = await getDoc(ref);
+  const fetchShipping = async () => {
+    try {
+      const ref = doc(db, "settings", "shipping");
+      const snap = await getDoc(ref);
 
-        if (snap.exists()) {
-          const data = snap.data();
-          setShippingFee(data.fee ?? 120);
-          setFreeThreshold(data.freeShippingThreshold ?? 1000);
-        }
-      } catch (e) {
-        console.log("讀取運費失敗", e);
+      if (snap.exists()) {
+        const data = snap.data();
+        setShippingFee(data.fee ?? 120);
+        setFreeThreshold(data.freeShippingThreshold ?? 1000);
+      } else {
+        console.warn("shipping 文件不存在");
       }
-    };
+    } catch (e) {
+      console.error("讀取運費失敗:", e);
+    }
+  };
 
-    fetchShipping();
-  }, []);
+  fetchShipping(); // ⭐ 這行你缺了
+}, []);
 
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {

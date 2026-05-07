@@ -145,17 +145,28 @@ export default function ShopClient() {
             <div className="font-bold mb-2">總金額：${total}</div>
 
             <button
-              onClick={() => {
-                if (cart.length === 0) {
-                  setShowEmptyAlert(true);
-                  return;
-                }
-                router.push("/checkout");
-              }}
-              className="bg-green-600 text-white py-3 rounded-lg"
-            >
-              結帳
-            </button>
+  onClick={() => {
+    // 沒商品
+    if (cart.length === 0) {
+      setShowEmptyAlert(true);
+      return;
+    }
+
+    // 🔥 檢查 LINE 登入
+    const uid = localStorage.getItem("lineUserId");
+
+    if (!uid) {
+      alert("請先從官方LINE進入登入後再下單");
+      return;
+    }
+
+    // 正常進入結帳
+    router.push("/checkout");
+  }}
+  className="bg-green-600 text-white py-3 rounded-lg"
+>
+  結帳
+</button>
           </div>
         )}
       </div>

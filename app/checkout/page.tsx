@@ -72,6 +72,14 @@ export default function CheckoutPage() {
   };
 
   // ⭐ 載入購物車
+  useEffect(() => {
+    const uid = localStorage.getItem("lineUserId");
+
+    if (!uid) {
+      alert("請先從LINE進入");
+      router.push("/");
+    }
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("cart");
@@ -336,5 +344,6 @@ export default function CheckoutPage() {
       </button>
 
     </div>
+    
   );
 }
