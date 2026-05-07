@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import liff from "@line/liff";
 export default function ShopClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,6 +18,10 @@ export default function ShopClient() {
 
   const [category, setCategory] = useState("全部");
   const [showEmptyAlert, setShowEmptyAlert] = useState(false);
+const [lineId, setLineId] = useState("");
+
+
+
 
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
@@ -34,20 +38,42 @@ export default function ShopClient() {
     setProducts(list);
   };
 
-  useEffect(() => {
-    fetchProducts();
-    const saved = localStorage.getItem("cart");
-    if (saved) setCart(JSON.parse(saved));
-  }, []);
+  
 
-  // ⭐ 修正點（安全用法）
-  useEffect(() => {
-    if (!searchParams) return;
-    const uid = searchParams.get("uid");
-    if (uid) {
-      localStorage.setItem("lineUserId", uid);
+useEffect(() => {
+  const init = async () => {
+    try {
+      await liff.init({
+  liffId: "2009965103-C4wyKwKd",
+  withLoginOnExternalBrowser: true, // ⭐關鍵
+});
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+      await liff.ready;
+      if (!liff.isInClient()) {
+  console.log("外部瀏覽器");
+}
+      const profile = await liff.getProfile();
+      alert("LINE ID: " + profile.userId);
+      console.log("LINE user:", profile);
+        setLineId(profile.userId);
+      // ⭐ 存 userId
+      localStorage.setItem("lineUserId", profile.userId);
+    } catch (e) {
+      console.error("LIFF init error", e);
     }
-  }, [searchParams]);
+  };
+
+  init();
+
+  fetchProducts();
+
+  const saved = localStorage.getItem("cart");
+  if (saved) setCart(JSON.parse(saved));
+}, []);
 
   const filteredProducts =
     category === "全部"
@@ -105,6 +131,8 @@ export default function ShopClient() {
         <p className="text-sm text-green-900 font-semibold mt-1">
           新鮮直送｜健康安心｜在地農產
         </p>
+        <p>LINE ID: {lineId}</p>
+        
       </div>
 
       {/* 購物車 */}
@@ -156,7 +184,7 @@ export default function ShopClient() {
     const uid = localStorage.getItem("lineUserId");
 
     if (!uid) {
-      alert("請先從官方LINE進入登入後再下單");
+      alert("請先LINE登入後再下單");
       return;
     }
 

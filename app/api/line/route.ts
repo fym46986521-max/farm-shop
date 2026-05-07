@@ -4,7 +4,10 @@ export async function POST(req: Request) {
   try {
     const { name, phone, address, items, total, userId } = await req.json();
 
-    // 🔥 訊息內容
+    // ⭐ 防呆（items 可能是字串）
+    const parsedItems =
+      typeof items === "string" ? JSON.parse(items) : items;
+
     const text = `📦 新訂單
 
 👤 ${name}
@@ -12,52 +15,43 @@ export async function POST(req: Request) {
 🏠 ${address}
 
 🛒 商品：
-${items.map((i: any) => `- ${i.name} x${i.qty} ($${i.price})`).join("\n")}
+${parsedItems.map((i: any) => `- ${i.name} x${i.qty} ($${i.price})`).join("\n")}
 
 💰 總金額：$${total}`;
 
-    // ⭐ 決定發送對象
     const customerId = userId || null;
     const adminId = process.env.LINE_USER_ID;
 
-    // =========================
-    // 🔥 發給客人（如果有 userId）
-    // =========================
+    // 🔥 發給客人
     if (customerId) {
-      try {
-        await fetch("https://api.line.me/v2/bot/message/push", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.LINE_CHANNEL_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            to: customerId,
-            messages: [
-              {
-                type: "text",
-                text: `✅ 已收到您的訂單！
+      await fetch("https://api.line.me/v2/bot/message/push", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: customerId,
+          messages: [
+            {
+              type: "text",
+              text: `✅ 已收到您的訂單！
 
 ${text}
 
 🙏 我們會儘快為您處理`,
-              },
-            ],
-          }),
-        });
-      } catch (e) {
-        console.log("❌ 客人LINE發送失敗");
-      }
+            },
+          ],
+        }),
+      });
     }
 
-    // =========================
-    // 🔥 發給老闆（固定）
-    // =========================
-    try {
+    // 🔥 發給管理員
+    if (adminId) {
       await fetch("https://api.line.me/v2/bot/message/push", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.LINE_CHANNEL_TOKEN}`,
+          Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -70,12 +64,11 @@ ${text}
           ],
         }),
       });
-    } catch (e) {
-      console.log("❌ 老闆LINE發送失敗");
     }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
+    console.error("LINE API ERROR:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

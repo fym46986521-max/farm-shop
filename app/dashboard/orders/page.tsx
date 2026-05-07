@@ -39,7 +39,19 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
   try {
     const res = await fetch("/api/orders");
-    const data = await res.json();
+
+    const raw = await res.json();
+
+    // ⭐⭐⭐ 關鍵修正
+    const data = raw.map((o: any) => ({
+      ...o,
+      items:
+        typeof o.items === "string"
+          ? JSON.parse(o.items)
+          : o.items,
+    }));
+
+    console.log("orders:", data);
 
     setOrders(data);
   } catch (e) {
@@ -63,7 +75,7 @@ export default function OrdersPage() {
   const filteredOrders = orders
   .filter((o) => {
     const d = toDate(o.createdAt);
-    if (!d) return false;
+    if (!d) return true;
 
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate + "T23:59:59") : null;

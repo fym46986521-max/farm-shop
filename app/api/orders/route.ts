@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-
+console.log("KEY:", process.env.FIREBASE_ADMIN_KEY);
 export async function GET() {
   try {
     const snap = await adminDb.collection("orders").get();
 
-    const data = snap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const data = snap.docs.map((doc) => {
+  const d = doc.data();
+
+  return {
+    id: doc.id,
+    ...d,
+    items: typeof d.items === "string" ? JSON.parse(d.items) : d.items,
+  };
+});
 
     return NextResponse.json(data);
   } catch (e) {
