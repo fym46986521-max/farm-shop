@@ -6,7 +6,9 @@ export async function POST(req: Request) {
 
     // ⭐ 防呆（items 可能是字串）
     const parsedItems =
-      typeof items === "string" ? JSON.parse(items) : items;
+  typeof items === "string" && items
+    ? JSON.parse(items)
+    : items || [];
 
     const text = `📦 新訂單
 
