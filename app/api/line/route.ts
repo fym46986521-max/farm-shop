@@ -64,7 +64,7 @@ ${parsedItems
           type: "text",
           text: phone,
           size: "sm",
-          color: "#666"
+          color: "#666666"
         },
         {
           type: "text",
@@ -92,9 +92,9 @@ ${parsedItems
   contents: [
     {
       type: "image",
-      url: i.image?.startsWith("http")
-        ? i.image
-        : "https://picsum.photos/100",
+      url: i.image && i.image.startsWith("http")
+  ? i.image
+  : "https://picsum.photos/100",
       size: "sm",
       aspectMode: "cover",
       aspectRatio: "1:1"
@@ -114,7 +114,7 @@ ${parsedItems
           type: "text",
           text: `數量：${i.qty}`,
           size: "xs",
-          color: "#666"
+          color: "#666666"
         },
         {
           type: "text",
