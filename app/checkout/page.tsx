@@ -201,7 +201,7 @@ export default function CheckoutPage() {
         deliveryType,
         pickupType: deliveryType === "pickup" ? pickupType : null,
         pickupDate: pickupType === "scheduled" ? pickupDate : null,
-
+        
         customer: {
           name,
           phone,
@@ -222,7 +222,25 @@ export default function CheckoutPage() {
         lineUserId: lineUserId || null,
         status: "pending",
       });
-
+      // 🔥 LINE 通知（關鍵）
+try {
+  await fetch("/api/line", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name,
+      phone,
+      address: fullAddress,
+      items: cart,
+      total,
+      userId: lineUserId, // 🔥 這很重要
+    }),
+  });
+} catch (e) {
+  console.log("❌ LINE通知失敗");
+}
       localStorage.setItem(
         "lastCustomer",
         JSON.stringify({ name, phone, city, district, detail })
