@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 console.log("🔥 LINE API 被呼叫");
 console.log("token:", process.env.LINE_CHANNEL_ACCESS_TOKEN);
 console.log("admin:", process.env.LINE_USER_ID);
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -162,7 +163,8 @@ ${parsedItems
     const customerId = userId || null;
     const adminId = process.env.LINE_USER_ID;
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-
+    console.log("👉 customerId:", customerId);
+    console.log("👉 userId raw:", userId);
     // ❗ 防呆 token
     if (!token) {
       console.error("❌ LINE token missing");
@@ -170,20 +172,30 @@ ${parsedItems
     }
 
     // 🔥 發給客人
+    // 🔥 發給客人（一定要判斷）
+if (customerId) {
+  try {
     const res1 = await fetch("https://api.line.me/v2/bot/message/push", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    to: customerId,
-    messages: [flexMessage],
-  }),
-});
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: customerId,
+        messages: [flexMessage],
+      }),
+    });
 
-const result1 = await res1.text();
-console.log("📨 客戶LINE回應:", result1);
+    const result1 = await res1.text();
+    console.log("📨 客戶LINE回應:", result1);
+
+  } catch (e) {
+    console.error("❌ 客戶LINE發送錯誤", e);
+  }
+} else {
+  console.log("❌ 沒有 customerId，不發送");
+}
 
     // 🔥 發給管理員
     const res2 = await fetch("https://api.line.me/v2/bot/message/push", {
