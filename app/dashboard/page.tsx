@@ -15,7 +15,7 @@ import {
   setDoc,
   getDoc,
 } from "firebase/firestore";
-
+import { storage } from "@/lib/firebase";
 import {
   DndContext,
   closestCenter,
@@ -29,7 +29,7 @@ import {
 } from "@dnd-kit/sortable";
 
 import { CSS } from "@dnd-kit/utilities";
-const storage = getStorage();
+
 function SortableItem({ item, children }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -230,7 +230,7 @@ if (file) {
     setFile(null);
     setPreview("");
     setDescription("");
-
+    setCostInput("");
     fetchProducts();
   };
 
@@ -418,8 +418,9 @@ if (file) {
         <input
           type="file"
           onChange={(e) => {
-            if (e.target.files) handleFile(e.target.files[0]);
-          }}
+  const f = e.target.files?.[0];
+  if (f) handleFile(f);
+}}
         />
 
         <textarea
