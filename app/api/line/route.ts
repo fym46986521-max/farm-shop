@@ -34,7 +34,131 @@ ${parsedItems
   .join("\n")}
 
 💰 總金額：$${total}`;
+    const flexMessage = {
+  type: "flex",
+  altText: "📦 訂單成立通知",
+  contents: {
+    type: "bubble",
+    size: "mega",
+    body: {
+      type: "box",
+      layout: "vertical",
+      spacing: "md",
+      contents: [
+        {
+          type: "text",
+          text: "✅ 訂單成立",
+          weight: "bold",
+          size: "xl",
+          color: "#16a34a"
+        },
 
+        {
+          type: "text",
+          text: name,
+          weight: "bold",
+          size: "md"
+        },
+        {
+          type: "text",
+          text: phone,
+          size: "sm",
+          color: "#666"
+        },
+        {
+          type: "text",
+          text: address,
+          size: "sm",
+          wrap: true
+        },
+
+        {
+          type: "separator"
+        },
+
+        {
+          type: "text",
+          text: "🛒 商品明細",
+          weight: "bold",
+          size: "md"
+        },
+
+        // 🔥 商品圖片列表
+        ...parsedItems.slice(0, 10).map((i: any) => ({
+  type: "box",
+  layout: "horizontal",
+  spacing: "md",
+  contents: [
+    {
+      type: "image",
+      url: i.image?.startsWith("http")
+        ? i.image
+        : "https://picsum.photos/100",
+      size: "sm",
+      aspectMode: "cover",
+      aspectRatio: "1:1"
+    },
+    {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "text",
+          text: i.name,
+          size: "sm",
+          weight: "bold",
+          wrap: true
+        },
+        {
+          type: "text",
+          text: `數量：${i.qty}`,
+          size: "xs",
+          color: "#666"
+        },
+        {
+          type: "text",
+          text: `$${i.price}`,
+          size: "sm",
+          color: "#16a34a",
+          weight: "bold"
+        }
+      ]
+    }
+  ]
+})),
+
+        {
+          type: "separator"
+        },
+
+        {
+          type: "text",
+          text: `💰 總金額 $${total}`,
+          weight: "bold",
+          size: "lg",
+          color: "#e11d48"
+        }
+      ]
+    },
+
+    footer: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#22c55e",
+          action: {
+            type: "uri",
+            label: "🛍 查看商城",
+            uri: "https://farm-shop-blond.vercel.app/shop"
+          }
+        }
+      ]
+    }
+  }
+};
     const customerId = userId || null;
     const adminId = process.env.LINE_USER_ID;
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -46,56 +170,36 @@ ${parsedItems
     }
 
     // 🔥 發給客人
-    if (customerId) {
-      try {
-        await fetch("https://api.line.me/v2/bot/message/push", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            to: customerId,
-            messages: [
-              {
-                type: "text",
-                text: `✅ 已收到您的訂單！
+    const res1 = await fetch("https://api.line.me/v2/bot/message/push", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    to: customerId,
+    messages: [flexMessage],
+  }),
+});
 
-${text}
-
-🙏 我們會儘快為您處理`,
-              },
-            ],
-          }),
-        });
-      } catch (e) {
-        console.error("❌ 客人發送失敗", e);
-      }
-    }
+const result1 = await res1.text();
+console.log("📨 客戶LINE回應:", result1);
 
     // 🔥 發給管理員
-    if (adminId) {
-      try {
-        await fetch("https://api.line.me/v2/bot/message/push", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            to: adminId,
-            messages: [
-              {
-                type: "text",
-                text,
-              },
-            ],
-          }),
-        });
-      } catch (e) {
-        console.error("❌ 管理員發送失敗", e);
-      }
-    }
+    const res2 = await fetch("https://api.line.me/v2/bot/message/push", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    to: adminId,
+    messages: [{ type: "text", text }],
+  }),
+});
+
+const result2 = await res2.text();
+console.log("📨 老闆LINE回應:", result2);
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
