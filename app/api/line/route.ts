@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-
+console.log("🔥 LINE API 被呼叫");
+console.log("token:", process.env.LINE_CHANNEL_ACCESS_TOKEN);
+console.log("admin:", process.env.LINE_USER_ID);
 export async function POST(req: Request) {
   try {
     const { name, phone, address, items, total, userId } = await req.json();
-
+    const body = await req.json();
+    console.log("📦 body:", body);
     // ✅ 超安全 parse（不會炸）
     let parsedItems: any[] = [];
 
