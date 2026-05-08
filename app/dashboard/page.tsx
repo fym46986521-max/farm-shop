@@ -1,5 +1,5 @@
 "use client";
-
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -29,7 +29,7 @@ import {
 } from "@dnd-kit/sortable";
 
 import { CSS } from "@dnd-kit/utilities";
-
+const storage = getStorage();
 function SortableItem({ item, children }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -206,9 +206,13 @@ try {
 
     let image = "https://placehold.co/400x300";
 
-    if (file) {
-      image = await compressImage(file);
-    }
+if (file) {
+  const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
+  
+  await uploadBytes(fileRef, file);
+
+  image = await getDownloadURL(fileRef);
+}
 
     await addDoc(collection(db, "products"), {
       name,
@@ -398,7 +402,7 @@ try {
           type="number"
           placeholder="商品成本"
           value={costInput}
-          onChange={(e) => setCostInput("")}
+          onChange={(e) => setCostInput(e.target.value)}
           className="border p-2"
         />
         <select
