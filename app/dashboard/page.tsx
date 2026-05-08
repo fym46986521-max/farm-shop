@@ -202,8 +202,12 @@ try {
 
   const handleAdd = async () => {
     
-    if (!name || !price) return alert("請填寫");
-
+    if (!name.trim() || Number(price) <= 0) {
+  alert("請填寫名稱與價格");
+  console.log("🚀 handleAdd trigger");
+  return;
+}
+    console.log("🚀 開始新增");
     let image = "https://placehold.co/400x300";
 
 if (file) {
@@ -381,7 +385,7 @@ if (file) {
 </div>
 
 {/* 🔥 新增商品 */}
-<div className="flex gap-2 mb-4 flex-wrap"></div>
+
       {/* 🔥 新增商品 */}
       <div className="flex gap-2 mb-4 flex-wrap">
         <input
