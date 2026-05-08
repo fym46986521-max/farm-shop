@@ -57,7 +57,7 @@ useEffect(() => {
   console.log("外部瀏覽器");
 }
       const profile = await liff.getProfile();
-      alert("LINE ID: " + profile.userId);
+      const userId = profile.userId;
       console.log("LINE user:", profile);
         setLineId(profile.userId);
       // ⭐ 存 userId
@@ -115,6 +115,7 @@ useEffect(() => {
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   return (
+    
     <div
       className="min-h-screen p-3"
       style={{
@@ -131,76 +132,91 @@ useEffect(() => {
         <p className="text-sm text-green-900 font-semibold mt-1">
           新鮮直送｜健康安心｜在地農產
         </p>
-        <p>LINE ID: {lineId}</p>
         
       </div>
 
-      {/* 購物車 */}
-      <div className={`fixed top-0 left-0 h-full bg-white/95 backdrop-blur shadow-2xl z-50 transition-all ${openCart ? "w-72" : "w-14"}`}>
-        {!openCart && (
-          <button onClick={() => setOpenCart(true)} className="w-full h-full flex flex-col items-center justify-center text-xs">
-            🛒
-            <span className="mt-1">${total}</span>
-          </button>
-        )}
+      {/* 🛒 浮動購物車 */}
+<div className="fixed bottom-5 right-5 z-50">
+  <button
+    onClick={() => setOpenCart(true)}
+    className="bg-green-600 text-white rounded-full shadow-lg px-4 py-3 flex flex-col items-center text-xs"
+  >
+    <span className="text-lg">🛒</span>
+    <span>${total}</span>
+    <span className="text-[10px]">購物車點我</span>
+  </button>
+</div>
 
         {openCart && (
-          <div className="p-3 h-full flex flex-col">
-            <div className="flex justify-between mb-2">
-              <h2 className="font-bold">購物車</h2>
-              <button onClick={() => setOpenCart(false)}>✕</button>
-            </div>
+  <div
+    className="fixed inset-0 bg-black/40 z-50 flex justify-end"
+    onClick={() => setOpenCart(false)}   // ⭐ 點背景關閉
+  >
+    <div
+      className="w-80 bg-white h-full p-4 flex flex-col shadow-xl"
+      onClick={(e) => e.stopPropagation()} // ⭐ 防止點裡面關閉
+    >
 
-            <div className="flex-1 overflow-y-auto">
-              {cart.map((item) => (
-                <div key={item.id} className="flex gap-2 mb-3">
-                  <img src={item.image} className="w-14 h-14 object-cover rounded" />
-                  <div className="flex-1 text-sm">
-                    <p className="font-bold">{item.name}</p>
-                    <p>${item.price}</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => changeQty(item.id, -1)}>－</button>
-                      <span>{item.qty}</span>
-                      <button onClick={() => changeQty(item.id, 1)}>＋</button>
-                    </div>
-                    <p>${item.price * item.qty}</p>
-                    <button onClick={() => removeItem(item.id)} className="text-red-500 text-xs">刪除</button>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            <div className="font-bold mb-2">總金額：${total}</div>
-
-            <button
-  onClick={() => {
-    // 沒商品
-    if (cart.length === 0) {
-      setShowEmptyAlert(true);
-      return;
-    }
-
-    // 🔥 檢查 LINE 登入
-    const uid = localStorage.getItem("lineUserId");
-
-    if (!uid) {
-      alert("請先LINE登入後再下單");
-      return;
-    }
-
-    // 正常進入結帳
-    router.push("/checkout");
-  }}
-  className="bg-green-600 text-white py-3 rounded-lg"
->
-  結帳
-</button>
-          </div>
-        )}
+      {/* 標題 */}
+      <div className="flex justify-between mb-3">
+        <h2 className="font-bold text-lg">🛒 購物車</h2>
+        <button onClick={() => setOpenCart(false)}>✕</button>
       </div>
 
       {/* 商品 */}
-      <div className="ml-16 bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-lg">
+      <div className="flex-1 overflow-y-auto">
+        {cart.map((item) => (
+          <div key={item.id} className="flex gap-2 mb-3">
+            <img src={item.image} className="w-14 h-14 rounded object-cover" />
+            <div className="flex-1 text-sm">
+              <p className="font-bold">{item.name}</p>
+              <p>${item.price}</p>
+
+              <div className="flex gap-2 items-center">
+                <button onClick={() => changeQty(item.id, -1)}>－</button>
+                <span>{item.qty}</span>
+                <button onClick={() => changeQty(item.id, 1)}>＋</button>
+              </div>
+
+              <p>${item.price * item.qty}</p>
+              <button onClick={() => removeItem(item.id)} className="text-red-500 text-xs">
+                刪除
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 總金額 */}
+      <div className="font-bold mb-2">總金額：${total}</div>
+
+      {/* 結帳 */}
+      <button
+        onClick={() => {
+          if (cart.length === 0) {
+            setShowEmptyAlert(true);
+            return;
+          }
+
+          const uid = localStorage.getItem("lineUserId");
+          if (!uid) {
+            alert("請先LINE登入後再下單");
+            return;
+          }
+
+          router.push("/checkout");
+        }}
+        className="bg-green-600 text-white py-3 rounded-lg"
+      >
+        結帳
+      </button>
+    </div>
+    </div>
+)}
+    
+      {/* 商品 */}
+      <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-lg">
 
         <div className="sticky top-0 z-40 pb-2">
           <h1 className="text-lg font-bold mb-2">商品商城</h1>

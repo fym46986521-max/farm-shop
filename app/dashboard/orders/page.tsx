@@ -45,10 +45,15 @@ export default function OrdersPage() {
     // ⭐⭐⭐ 關鍵修正
     const data = raw.map((o: any) => ({
       ...o,
-      items:
-        typeof o.items === "string"
-          ? JSON.parse(o.items)
-          : o.items,
+      items: (() => {
+  try {
+    return typeof o.items === "string"
+      ? JSON.parse(o.items)
+      : o.items;
+  } catch {
+    return [];
+  }
+})(),
     }));
 
     console.log("orders:", data);
@@ -146,31 +151,43 @@ export default function OrdersPage() {
   alert("請先選擇包裝");
   return;
 }
-    const newStatus =
-      order.status === "shipped" ? "pending" : "shipped";
+    if (order.status === "shipped") return; // ⭐ 防重複
+
+      const newStatus = "shipped";
 
     await updateDoc(doc(db, "orders", order.id), {
       status: newStatus,
     });
 
     if (newStatus === "shipped" && order.lineUserId) {
-      try {
-        await fetch("/api/line", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "shipping",
-            userId: order.lineUserId,
-            name: order.customer?.name,
-            total: order.total,
-          }),
-        });
-      } catch {
-        console.log("LINE出貨通知失敗");
-      }
+  try {
+    console.log("🚚 發送出貨通知", order.lineUserId);
+
+    const res = await fetch("/api/line", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "shipping",
+        userId: order.lineUserId,
+        name: order.customer?.name,
+        total: order.total,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("❌ LINE 發送失敗:", data);
+    } else {
+      console.log("✅ LINE 發送成功");
+      alert("已出貨，LINE通知已發送");
     }
+  } catch (e) {
+    console.log("❌ LINE出貨通知失敗", e);
+  }
+}
 
     fetchOrders();
   };
