@@ -9,10 +9,21 @@ export async function POST(req: Request) {
 
     console.log("📦 body:", body);
 
-    const { name, phone, address, items, total, userId } = body;
+    const {
+  name,
+  phone,
+  address,
+  items,
+  total,
+  userId,
+  orderNo,
+  paymentMethod,
+  deliveryMethod,
+  shippingFee
+} = body;
     // ✅ 超安全 parse（不會炸）
     let parsedItems: any[] = [];
-
+    console.log("🖼 商品資料:", parsedItems);
     try {
       parsedItems =
         typeof items === "string"
@@ -53,26 +64,46 @@ ${parsedItems
           size: "xl",
           color: "#16a34a"
         },
-
         {
-          type: "text",
-          text: name,
-          weight: "bold",
-          size: "md"
-        },
+  type: "text",
+  text: `訂單號碼：${orderNo}`,
+  size: "sm"
+},
         {
-          type: "text",
-          text: phone,
-          size: "sm",
-          color: "#666666"
-        },
-        {
-          type: "text",
-          text: address,
-          size: "sm",
-          wrap: true
-        },
-
+  type: "text",
+  text: `👤 收件人：${name}`,
+  size: "sm"
+},
+{
+  type: "text",
+  text: `📞 收件人電話：${phone}`,
+  size: "sm"
+},
+{
+  type: "text",
+  text: `🏠 收件地址：${address}`,
+  size: "sm",
+  wrap: true
+},
+{
+  type: "text",
+  text: `🚚 配送方式：${deliveryMethod}`,
+  size: "sm"
+},
+{
+  type: "text",
+  text: `💳 付款方式：${paymentMethod}`,
+  size: "sm"
+},
+{
+  type: "text",
+  text:
+    deliveryMethod === "自取"
+      ? "🚚 運費：免運費"
+      : `🚚 運費：$${shippingFee}`,
+  size: "sm",
+  color: "#666666"
+},
         {
           type: "separator"
         },
@@ -96,7 +127,7 @@ ${parsedItems
   ? i.image
   : "https://picsum.photos/100",
       size: "sm",
-      aspectMode: "cover",
+      aspectMode: "fit",
       aspectRatio: "1:1"
     },
     {

@@ -236,6 +236,11 @@ try {
       items: cart,
       total,
       userId: lineUserId, // 🔥 這很重要
+      orderNo,
+      // 🔥 新增 ↓↓↓
+    deliveryMethod: deliveryType === "pickup" ? "自取" : "宅配",
+    paymentMethod: "貨到付款",
+    shippingFee: finalShipping,
     }),
   });
 } catch (e) {
