@@ -41,15 +41,29 @@ export default function OpsPage() {
   const t = o?.createdAt;
   if (!t) return null;
 
-  // Firestore Timestamp
   if (t.seconds) return new Date(t.seconds * 1000);
 
-  // 🔥 你現在這種格式（重點）
   if (typeof t === "string") {
-    // 把空格轉成 T
     const fixed = t.replace(" ", "T");
+
     const d = new Date(fixed);
-    return isNaN(d.getTime()) ? null : d;
+
+    if (!isNaN(d.getTime())) return d;
+
+    // 🔥 fallback（超關鍵）
+    const parts = t.split(/[- :]/);
+    if (parts.length >= 6) {
+      return new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2]),
+        Number(parts[3]),
+        Number(parts[4]),
+        Number(parts[5])
+      );
+    }
+
+    return null;
   }
 
   if (t instanceof Date) return t;
@@ -61,7 +75,10 @@ console.log("orders:", orders);
   const filteredOrders = useMemo(() => {
   return orders.filter((o) => {
     const d = toDate(o);
-    if (!d) return false;
+    if (!d) {
+  console.log("❌ 異常資料:", o);
+  return true; // 🔥 先不要過濾
+}
 
     if (filterMode === "all") return true;
 
