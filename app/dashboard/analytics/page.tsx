@@ -42,16 +42,20 @@ export default function OpsPage() {
 
   if (!t) return null;
 
-  // Firestore Timestamp
-  if (t.seconds) return new Date(t.seconds * 1000);
+  try {
+    if (t.seconds) return new Date(t.seconds * 1000);
 
-  // ISO string
-  if (typeof t === "string") return new Date(t);
+    if (typeof t === "string") {
+      const d = new Date(t);
+      return isNaN(d.getTime()) ? null : d;
+    }
 
-  // Date object
-  if (t instanceof Date) return t;
+    if (t instanceof Date) return t;
 
-  return null;
+    return null;
+  } catch {
+    return null;
+  }
 };
 
   // 🔥 全域統一 filter（修正重點）
