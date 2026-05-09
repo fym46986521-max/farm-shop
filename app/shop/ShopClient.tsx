@@ -24,19 +24,23 @@ const [lineId, setLineId] = useState("");
 
 
   const fetchProducts = async () => {
-    const snapshot = await getDocs(collection(db, "products"));
-    const list: any[] = [];
+  const snapshot = await getDocs(collection(db, "products"));
+  const list: any[] = [];
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.active !== false) {
-        list.push({ id: doc.id, ...data });
-      }
-    });
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.active !== false) {
+      list.push({ id: doc.id, ...data });
+    }
+  });
 
-    list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    setProducts(list);
-  };
+  list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  setProducts(list);
+
+  // ⭐⭐⭐ 加這行（存快取）
+  localStorage.setItem("products", JSON.stringify(list));
+};
 
   
 
@@ -44,23 +48,19 @@ useEffect(() => {
   const init = async () => {
     try {
       await liff.init({
-  liffId: "2009965103-C4wyKwKd",
-  withLoginOnExternalBrowser: true, // ⭐關鍵
-});
+        liffId: "2009965103-C4wyKwKd",
+        withLoginOnExternalBrowser: true,
+      });
 
       if (!liff.isLoggedIn()) {
         liff.login();
         return;
       }
+
       await liff.ready;
-      if (!liff.isInClient()) {
-  console.log("外部瀏覽器");
-}
+
       const profile = await liff.getProfile();
-      const userId = profile.userId;
-      console.log("LINE user:", profile);
-        setLineId(profile.userId);
-      // ⭐ 存 userId
+      setLineId(profile.userId);
       localStorage.setItem("lineUserId", profile.userId);
     } catch (e) {
       console.error("LIFF init error", e);
@@ -69,7 +69,13 @@ useEffect(() => {
 
   init();
 
-  fetchProducts();
+  // ⭐⭐⭐ 加這段（先用快取）
+  const cached = localStorage.getItem("products");
+  if (cached) {
+    setProducts(JSON.parse(cached));
+  }
+
+  fetchProducts(); // 再去更新最新資料
 
   const saved = localStorage.getItem("cart");
   if (saved) setCart(JSON.parse(saved));
