@@ -156,51 +156,54 @@ await updateDoc(doc(db, "orders", order.id), {
 };
   // ⭐ 出貨 + LINE通知
   const toggleStatus = async (order: any) => {
-  // ⭐ 未出貨 → 要檢查包裝
-  if (
-    order.status !== "shipped" &&
-    order.deliveryType !== "pickup" &&
-    !order.selectedPackaging
-  ) {
-    alert("請先選擇包裝");
-    return;
-  }
-
-  // ⭐ 切換狀態
-  const newStatus =
-    order.status === "shipped" ? "pending" : "shipped";
-
-  await updateDoc(doc(db, "orders", order.id), {
-    status: newStatus,
-  });
-
-  // ⭐ 只有「出貨」才發 LINE
-  if (newStatus === "shipped" && order.lineUserId) {
-    try {
-      const res = await fetch("/api/line", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "shipping",
-          userId: order.lineUserId,
-          name: order.customer?.name,
-          total: order.total,
-        }),
-      });
-
-      if (!res.ok) {
-        console.error("❌ LINE 發送失敗");
-      } else {
-        alert("已出貨，LINE通知已發送");
-      }
-    } catch (e) {
-      console.log("❌ LINE出貨通知失敗", e);
+  try {
+    // ⭐ 未出貨時要檢查包裝
+    if (
+      order.status !== "shipped" &&
+      order.deliveryType !== "pickup" &&
+      !order.selectedPackaging
+    ) {
+      alert("請先選擇包裝");
+      return;
     }
-  }
 
-  fetchOrders(); // ⭐ 重新刷新
+    // ⭐ 切換狀態（重點）
+    const newStatus =
+      order.status === "shipped" ? "pending" : "shipped";
+
+    await updateDoc(doc(db, "orders", order.id), {
+      status: newStatus,
+    });
+
+    // ⭐ 只有「變成已出貨」才發 LINE
+    if (newStatus === "shipped" && order.lineUserId) {
+      try {
+        const res = await fetch("/api/line", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "shipping",
+            userId: order.lineUserId,
+            name: order.customer?.name,
+            total: order.total,
+          }),
+        });
+
+        if (res.ok) {
+          alert("已出貨，LINE通知已發送");
+        }
+      } catch (e) {
+        console.log("❌ LINE出貨通知失敗", e);
+      }
+    }
+
+    fetchOrders();
+  } catch (e) {
+    console.error(e);
+    alert("更新失敗");
+  }
 };
 
   const exportExcel = () => {
@@ -444,11 +447,15 @@ await updateDoc(doc(db, "orders", order.id), {
   成本：${getOrderCost(order)}
 </p>
           <button
-            onClick={() => toggleStatus(order)}
-            className="bg-blue-500 text-white px-2 py-1 mt-2"
-          >
-            設為已出貨
-          </button>
+  onClick={() => toggleStatus(order)}
+  className={
+    order.status === "shipped"
+      ? "bg-gray-500 text-white px-2 py-1 mt-2"
+      : "bg-blue-500 text-white px-2 py-1 mt-2"
+  }
+>
+  {order.status === "shipped" ? "設為未出貨" : "設為已出貨"}
+</button>
 
         </div>
       ))}
@@ -497,11 +504,15 @@ await updateDoc(doc(db, "orders", order.id), {
   成本：${getOrderCost(order)}
 </p>
           <button
-            onClick={() => toggleStatus(order)}
-            className="bg-gray-500 text-white px-2 py-1 mt-2"
-          >
-            設為未出貨
-          </button>
+  onClick={() => toggleStatus(order)}
+  className={
+    order.status === "shipped"
+      ? "bg-gray-500 text-white px-2 py-1 mt-2"
+      : "bg-blue-500 text-white px-2 py-1 mt-2"
+  }
+>
+  {order.status === "shipped" ? "設為未出貨" : "設為已出貨"}
+</button>
           
         </div>
       ))}
