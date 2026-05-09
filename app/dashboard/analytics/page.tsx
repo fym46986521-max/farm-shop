@@ -104,12 +104,13 @@ export default function OpsPage() {
   // 🔥 趨勢
   const trendData = useMemo(() => {
   const map: Record<string, any> = {};
-
+    
   filteredOrders.forEach((o) => {
     const d = toDate(o);
     if (!d) return;
-    if (d.getFullYear() !== year) return;
-
+    
+    console.log("year:", year);
+    console.log("order year:", d.getFullYear());
     let key = "";
 
     if (mode === "day") {
@@ -142,7 +143,6 @@ export default function OpsPage() {
   orders.forEach((o) => {
     const d = toDate(o);
     if (!d) return;
-    if (d.getFullYear() !== year) return;
 
     if (d.getFullYear() === thisYear) current += o.total || 0;
     if (d.getFullYear() === thisYear - 1) last += o.total || 0;
