@@ -268,20 +268,24 @@ if (customerId) {
 }
     
     // 🔥 發給管理員
-    const res2 = await fetch("https://api.line.me/v2/bot/message/push", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    to: adminId,
-    messages: [{ type: "text", text }],
-  }),
-});
+    if (type !== "shipping") {
+  const res2 = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      to: adminId,
+      messages: [{ type: "text", text }],
+    }),
+  });
 
-const result2 = await res2.text();
-console.log("📨 老闆LINE回應:", result2);
+  const result2 = await res2.text();
+  console.log("📨 老闆LINE回應:", result2);
+}
+
+
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
