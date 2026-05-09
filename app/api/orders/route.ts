@@ -11,7 +11,10 @@ export async function GET() {
   return {
     id: doc.id,
     ...d,
-    items: typeof d.items === "string" ? JSON.parse(d.items) : d.items,
+    createdAt: d.createdAt || null, // ⭐ 一定要有
+    items: typeof d.items === "string"
+      ? JSON.parse(d.items)
+      : d.items,
   };
 });
 
