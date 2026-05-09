@@ -25,50 +25,7 @@ export async function POST(req: Request) {
     // ✅ 超安全 parse（不會炸）
     let parsedItems: any[] = [];
     let message;
-    if (type === "shipping") {
-  message = {
-    type: "flex",
-    altText: "🚚 訂單已出貨",
-    contents: {
-      type: "bubble",
-      body: {
-        type: "box",
-        layout: "vertical",
-        spacing: "md",
-        contents: [
-          {
-            type: "text",
-            text: "🚚 已出貨通知",
-            weight: "bold",
-            size: "xl",
-            color: "#2563eb"
-          },
-          {
-            type: "text",
-            text: `訂單號碼：${orderNo || "-"}`,
-            size: "sm"
-          },
-          {
-            type: "text",
-            text: `👤 ${name}`,
-            size: "sm"
-          },
-          {
-            type: "text",
-            text: `💰 金額：$${total}`,
-            size: "sm"
-          },
-          {
-            type: "text",
-            text: "📦 您的訂單已出貨，請留意收件",
-            size: "sm",
-            wrap: true
-          }
-        ]
-      }
-    }
-  };
-}
+    
     console.log("🖼 商品資料:", parsedItems);
     try {
       parsedItems =
@@ -120,17 +77,6 @@ ${parsedItems
   type: "text",
   text: `👤 收件人：${name}`,
   size: "sm"
-},
-{
-  type: "text",
-  text: `📞 收件人電話：${phone}`,
-  size: "sm"
-},
-{
-  type: "text",
-  text: `🏠 收件地址：${address}`,
-  size: "sm",
-  wrap: true
 },
 {
   type: "text",
@@ -238,6 +184,52 @@ ${parsedItems
     }
   }
 };
+    if (type === "shipping") {
+  message = {
+    type: "flex",
+    altText: "🚚 訂單已出貨",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: "🚚 已出貨通知",
+            weight: "bold",
+            size: "xl",
+            color: "#2563eb"
+          },
+          {
+            type: "text",
+            text: `訂單號碼：${orderNo || "-"}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: `👤 ${name}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: `💰 金額：$${total}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: "📦 您的訂單已出貨，請留意收件",
+            size: "sm",
+            wrap: true
+          }
+        ]
+      }
+    }
+  };
+}else {
+  message = flexMessage; // ⭐ 訂單成立
+}
     const customerId = userId || null;
     const adminId = process.env.LINE_USER_ID;
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -261,7 +253,7 @@ if (customerId) {
       },
       body: JSON.stringify({
         to: customerId,
-        messages: [flexMessage],
+        messages: [message], // ⭐ 改這行
       }),
     });
 

@@ -184,11 +184,17 @@ await updateDoc(doc(db, "orders", order.id), {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            type: "shipping",
-            userId: order.lineUserId,
-            name: order.customer?.name,
-            total: order.total,
-          }),
+  type: "shipping",
+  userId: order.lineUserId,
+  name: order.customer?.name,
+  phone: order.customer?.phone,
+  address: order.customer?.fullAddress,
+  orderNo: order.orderNo,
+  total: order.total,
+  deliveryMethod: getDeliveryLabel(order),
+  paymentMethod: order.paymentMethod || "貨到付款",
+  shippingFee: order.shippingFee || 0,
+}),
         });
 
         if (res.ok) {
