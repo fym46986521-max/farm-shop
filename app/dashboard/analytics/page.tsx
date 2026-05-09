@@ -57,7 +57,7 @@ export default function OpsPage() {
     return null;
   }
 };
-
+console.log("orders:", orders);
   // 🔥 全域統一 filter（修正重點）
   const filteredOrders = useMemo(() => {
   return orders.filter((o) => {
