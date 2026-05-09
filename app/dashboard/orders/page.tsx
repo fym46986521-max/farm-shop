@@ -156,54 +156,52 @@ await updateDoc(doc(db, "orders", order.id), {
 };
   // ⭐ 出貨 + LINE通知
   const toggleStatus = async (order: any) => {
-    if (
-  order.status !== "shipped" &&
-  order.deliveryType !== "pickup" &&
-  !order.selectedPackaging
-) {
-  alert("請先選擇包裝");
-  return;
-}
-    if (order.status === "shipped") return; // ⭐ 防重複
-
-      const newStatus = "shipped";
-
-    await updateDoc(doc(db, "orders", order.id), {
-      status: newStatus,
-    });
-
-    if (newStatus === "shipped" && order.lineUserId) {
-  try {
-    console.log("🚚 發送出貨通知", order.lineUserId);
-
-    const res = await fetch("/api/line", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "shipping",
-        userId: order.lineUserId,
-        name: order.customer?.name,
-        total: order.total,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("❌ LINE 發送失敗:", data);
-    } else {
-      console.log("✅ LINE 發送成功");
-      alert("已出貨，LINE通知已發送");
-    }
-  } catch (e) {
-    console.log("❌ LINE出貨通知失敗", e);
+  // ⭐ 未出貨 → 要檢查包裝
+  if (
+    order.status !== "shipped" &&
+    order.deliveryType !== "pickup" &&
+    !order.selectedPackaging
+  ) {
+    alert("請先選擇包裝");
+    return;
   }
-}
 
-    fetchOrders();
-  };
+  // ⭐ 切換狀態
+  const newStatus =
+    order.status === "shipped" ? "pending" : "shipped";
+
+  await updateDoc(doc(db, "orders", order.id), {
+    status: newStatus,
+  });
+
+  // ⭐ 只有「出貨」才發 LINE
+  if (newStatus === "shipped" && order.lineUserId) {
+    try {
+      const res = await fetch("/api/line", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "shipping",
+          userId: order.lineUserId,
+          name: order.customer?.name,
+          total: order.total,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("❌ LINE 發送失敗");
+      } else {
+        alert("已出貨，LINE通知已發送");
+      }
+    } catch (e) {
+      console.log("❌ LINE出貨通知失敗", e);
+    }
+  }
+
+  fetchOrders(); // ⭐ 重新刷新
+};
 
   const exportExcel = () => {
     if (!exportPending && !exportShipped) {
