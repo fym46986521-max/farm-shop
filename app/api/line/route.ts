@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     console.log("📦 body:", body);
 
     const {
+  type, // ⭐ 加這行
   name,
   phone,
   address,
@@ -23,6 +24,51 @@ export async function POST(req: Request) {
 } = body;
     // ✅ 超安全 parse（不會炸）
     let parsedItems: any[] = [];
+    let message;
+    if (type === "shipping") {
+  message = {
+    type: "flex",
+    altText: "🚚 訂單已出貨",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: "🚚 已出貨通知",
+            weight: "bold",
+            size: "xl",
+            color: "#2563eb"
+          },
+          {
+            type: "text",
+            text: `訂單號碼：${orderNo || "-"}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: `👤 ${name}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: `💰 金額：$${total}`,
+            size: "sm"
+          },
+          {
+            type: "text",
+            text: "📦 您的訂單已出貨，請留意收件",
+            size: "sm",
+            wrap: true
+          }
+        ]
+      }
+    }
+  };
+}
     console.log("🖼 商品資料:", parsedItems);
     try {
       parsedItems =
@@ -44,7 +90,8 @@ export async function POST(req: Request) {
 ${parsedItems
   .map((i: any) => `- ${i.name} x${i.qty} ($${i.price})`)
   .join("\n")}
-
+    
+    
 💰 總金額：$${total}`;
     const flexMessage = {
   type: "flex",
@@ -114,7 +161,7 @@ ${parsedItems
           weight: "bold",
           size: "md"
         },
-
+        
         // 🔥 商品圖片列表
         ...parsedItems.slice(0, 10).map((i: any) => ({
   type: "box",
@@ -172,7 +219,7 @@ ${parsedItems
         }
       ]
     },
-
+    
     footer: {
       type: "box",
       layout: "vertical",
@@ -227,7 +274,7 @@ if (customerId) {
 } else {
   console.log("❌ 沒有 customerId，不發送");
 }
-
+    
     // 🔥 發給管理員
     const res2 = await fetch("https://api.line.me/v2/bot/message/push", {
   method: "POST",
