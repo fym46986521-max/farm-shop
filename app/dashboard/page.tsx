@@ -213,7 +213,18 @@ try {
 if (file) {
   const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
   
+  try {
+  const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
+
   await uploadBytes(fileRef, file);
+
+  image = await getDownloadURL(fileRef);
+
+  console.log("✅ 上傳成功:", image);
+} catch (e) {
+  console.error("❌ 上傳失敗:", e);
+  alert("圖片上傳失敗");
+}
 
   image = await getDownloadURL(fileRef);
 }
