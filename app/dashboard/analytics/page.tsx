@@ -42,28 +42,13 @@ export default function OpsPage() {
   if (!t) return null;
 
   if (t.seconds) return new Date(t.seconds * 1000);
+  if (t._seconds) return new Date(t._seconds * 1000); // ⭐補這行
 
   if (typeof t === "string") {
     const fixed = t.replace(" ", "T");
-
     const d = new Date(fixed);
 
     if (!isNaN(d.getTime())) return d;
-
-    // 🔥 fallback（超關鍵）
-    const parts = t.split(/[- :]/);
-    if (parts.length >= 6) {
-      return new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2]),
-        Number(parts[3]),
-        Number(parts[4]),
-        Number(parts[5])
-      );
-    }
-
-    return null;
   }
 
   if (t instanceof Date) return t;
@@ -127,7 +112,7 @@ console.log("orders:", orders);
     
   filteredOrders.forEach((o) => {
     const d = toDate(o);
-    if (!d) return;
+    if (!d) return false;
     
     console.log("year:", year);
     console.log("order year:", d.getFullYear());
@@ -229,8 +214,21 @@ console.log("orders:", orders);
 
         {filterMode === "range" && (
           <>
-            <input type="date" onChange={(e)=>setStartDate(e.target.value)} className="border p-2"/>
-            <input type="date" onChange={(e)=>setEndDate(e.target.value)} className="border p-2"/>
+            <input
+  type="date"
+  onChange={(e) => {
+    setStartDate(e.target.value);
+    setFilterMode("range"); // ⭐ 自動切換
+  }}
+/>
+
+<input
+  type="date"
+  onChange={(e) => {
+    setEndDate(e.target.value);
+    setFilterMode("range"); // ⭐ 自動切換
+  }}
+/>
           </>
         )}
       </div>

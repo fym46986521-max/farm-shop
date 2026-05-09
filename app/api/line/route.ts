@@ -209,7 +209,7 @@ ${parsedItems
           },
           {
             type: "text",
-            text: `👤 ${name}`,
+            text: `👤收件者: ${name}`,
             size: "sm"
           },
           {
