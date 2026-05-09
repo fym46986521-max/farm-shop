@@ -30,11 +30,14 @@ export default function OrdersPage() {
   small: 0,
 });
   const toDate = (t: any) => {
-    if (!t) return null;
-    if (t.seconds) return new Date(t.seconds * 1000);
-    if (typeof t === "string") return new Date(t);
-    return null;
-  };
+  if (!t) return null;
+
+  if (t.seconds) return new Date(t.seconds * 1000);
+  if (t._seconds) return new Date(t._seconds * 1000); // ⭐補這行
+  if (typeof t === "string") return new Date(t);
+
+  return null;
+};
 
   const fetchOrders = async () => {
   try {
