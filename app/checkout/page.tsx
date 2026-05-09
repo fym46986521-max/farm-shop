@@ -300,10 +300,25 @@ try {
         ))}
 
         <div className="text-right text-sm">
-          <p>商品：${subtotal}</p>
-          <p>運費：{finalShipping === 0 ? "免運" : `$${finalShipping}`}</p>
-          <p className="font-bold">總計：${total}</p>
-        </div>
+  <p>商品：${subtotal}</p>
+  <p>運費：{finalShipping === 0 ? "免運" : `$${finalShipping}`}</p>
+
+  {/* ⭐ 還差多少免運 */}
+  {deliveryType === "delivery" && subtotal < freeThreshold && (
+    <p className="text-orange-500">
+      再買 ${freeThreshold - subtotal} 即可免運 🚚
+    </p>
+  )}
+
+  {/* ⭐ 已達免運 */}
+  {deliveryType === "delivery" && subtotal >= freeThreshold && (
+    <p className="text-green-600 font-bold">
+      🎉 已達免運門檻
+    </p>
+  )}
+
+  <p className="font-bold">總計：${total}</p>
+</div>
       </div>
 
       {/* ⭐ 取貨方式 */}
@@ -312,7 +327,7 @@ try {
 
         <div className="flex gap-4">
           <button onClick={()=>setDeliveryType("delivery")} className={deliveryType==="delivery"?"bg-blue-500 text-white px-3 py-1":"border px-3 py-1"}>
-            宅配
+            宅配(貨到付款)
           </button>
 
           <button onClick={()=>setDeliveryType("pickup")} className={deliveryType==="pickup"?"bg-blue-500 text-white px-3 py-1":"border px-3 py-1"}>

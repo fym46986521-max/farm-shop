@@ -37,24 +37,37 @@ export default function OpsPage() {
   fetchOrders();
 }, []);
 
-  const toDate = (o: any) =>
-    o?.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : null;
+  const toDate = (o: any) => {
+  const t = o?.createdAt;
+
+  if (!t) return null;
+
+  // Firestore Timestamp
+  if (t.seconds) return new Date(t.seconds * 1000);
+
+  // ISO string
+  if (typeof t === "string") return new Date(t);
+
+  // Date object
+  if (t instanceof Date) return t;
+
+  return null;
+};
 
   // 🔥 全域統一 filter（修正重點）
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
-      if (filterMode === "all") return true;
+  return orders.filter((o) => {
+    if (filterMode === "all") return true;
 
-      if (!o.createdAt?.seconds) return false;
+    const d = toDate(o);
+    if (!d) return false;
 
-      const d = new Date(o.createdAt.seconds * 1000);
+    if (startDate && d < new Date(startDate)) return false;
+    if (endDate && d > new Date(endDate + "T23:59:59")) return false;
 
-      if (startDate && d < new Date(startDate)) return false;
-      if (endDate && d > new Date(endDate + "T23:59:59")) return false;
-
-      return true;
-    });
-  }, [orders, filterMode, startDate, endDate]);
+    return true;
+  });
+}, [orders, filterMode, startDate, endDate]);
 
   // 🔥 KPI
   const kpi = useMemo(() => {

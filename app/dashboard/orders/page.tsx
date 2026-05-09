@@ -115,12 +115,22 @@ export default function OrdersPage() {
     small: packagingSetting.small,
   };
 
-  await updateDoc(doc(db, "orders", order.id), {
-    selectedPackaging: type,
-    packagingCost: costMap[type] || 0,
-  });
+  setOrders((prev) =>
+  prev.map((o) =>
+    o.id === order.id
+      ? {
+          ...o,
+          selectedPackaging: type,
+          packagingCost: costMap[type] || 0,
+        }
+      : o
+  )
+);
 
-  fetchOrders();
+await updateDoc(doc(db, "orders", order.id), {
+  selectedPackaging: type,
+  packagingCost: costMap[type] || 0,
+});
 };
   const getOrderCost = (order: any) => {
   let productCost = 0;
