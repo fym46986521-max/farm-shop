@@ -39,23 +39,22 @@ export default function OpsPage() {
 
   const toDate = (o: any) => {
   const t = o?.createdAt;
-
   if (!t) return null;
 
-  try {
-    if (t.seconds) return new Date(t.seconds * 1000);
+  // Firestore Timestamp
+  if (t.seconds) return new Date(t.seconds * 1000);
 
-    if (typeof t === "string") {
-      const d = new Date(t);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    if (t instanceof Date) return t;
-
-    return null;
-  } catch {
-    return null;
+  // 🔥 你現在這種格式（重點）
+  if (typeof t === "string") {
+    // 把空格轉成 T
+    const fixed = t.replace(" ", "T");
+    const d = new Date(fixed);
+    return isNaN(d.getTime()) ? null : d;
   }
+
+  if (t instanceof Date) return t;
+
+  return null;
 };
 console.log("orders:", orders);
   // 🔥 全域統一 filter（修正重點）
