@@ -60,10 +60,14 @@ export default function OpsPage() {
     if (filterMode === "all") return true;
 
     const d = toDate(o);
-    if (!d) return false;
+    if (!d) return;
+    if (d.getFullYear() !== year) return;
 
-    if (startDate && d < new Date(startDate)) return false;
-    if (endDate && d > new Date(endDate + "T23:59:59")) return false;
+    const start = startDate ? new Date(startDate + "T00:00:00") : null;
+    const end = endDate ? new Date(endDate + "T23:59:59") : null;
+
+if (start && d < start) return false;
+if (end && d > end) return false;
 
     return true;
   });
@@ -105,6 +109,7 @@ export default function OpsPage() {
   filteredOrders.forEach((o) => {
     const d = toDate(o);
     if (!d) return;
+    if (d.getFullYear() !== year) return;
 
     let key = "";
 
@@ -138,6 +143,7 @@ export default function OpsPage() {
   orders.forEach((o) => {
     const d = toDate(o);
     if (!d) return;
+    if (d.getFullYear() !== year) return;
 
     if (d.getFullYear() === thisYear) current += o.total || 0;
     if (d.getFullYear() === thisYear - 1) last += o.total || 0;
@@ -239,8 +245,19 @@ export default function OpsPage() {
           onChange={(e) => setYear(Number(e.target.value))}
           className="border p-2 w-28"
         />
-        <button onClick={() => setMode("month")} className="bg-blue-500 text-white px-2">月</button>
-        <button onClick={() => setMode("week")} className="bg-gray-500 text-white px-2">週</button>
+        <button
+  onClick={() => setMode("month")}
+  className={`px-2 ${mode === "month" ? "bg-blue-500 text-white" : "bg-gray-300"}`}
+>
+  月
+</button>
+
+<button
+  onClick={() => setMode("week")}
+  className={`px-2 ${mode === "week" ? "bg-blue-500 text-white" : "bg-gray-300"}`}
+>
+  週
+</button>
       </div>
       <div className="p-4 bg-purple-50 border">
   <p>🧾 訂單數</p>
