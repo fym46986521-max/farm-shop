@@ -181,20 +181,8 @@ export default function CheckoutPage() {
       const m = String(now.getMonth() + 1).padStart(2, "0");
 
       const counterRef = doc(db, "counters", `${y}${m}`);
-      let orderNo = "";
 
-      await runTransaction(db, async (t) => {
-        const d = await t.get(counterRef);
-        let n = 1;
-
-        if (!d.exists()) {
-          t.set(counterRef, { seq: n });
-        } else {
-          n = d.data().seq + 1;
-          t.update(counterRef, { seq: n });
-        }
-
-        const orderNo = await runTransaction(db, async (t) => {
+const orderNo = await runTransaction(db, async (t) => {
   const d = await t.get(counterRef);
   let n = 1;
 
@@ -210,10 +198,8 @@ export default function CheckoutPage() {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
 
-  // ⭐ return 出來
   return `${y}${m}${day}-${String(n).padStart(5, "0")}`;
 });
-      });
 
       await addDoc(collection(db, "orders"), {
         orderNo,
