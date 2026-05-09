@@ -57,17 +57,16 @@ export default function OpsPage() {
   // 🔥 全域統一 filter（修正重點）
   const filteredOrders = useMemo(() => {
   return orders.filter((o) => {
-    if (filterMode === "all") return true;
-
     const d = toDate(o);
-    if (!d) return;
-    if (d.getFullYear() !== year) return;
+    if (!d) return false;
+
+    if (filterMode === "all") return true;
 
     const start = startDate ? new Date(startDate + "T00:00:00") : null;
     const end = endDate ? new Date(endDate + "T23:59:59") : null;
 
-if (start && d < start) return false;
-if (end && d > end) return false;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
 
     return true;
   });
@@ -134,7 +133,7 @@ if (end && d > end) return false;
   });
 
   return Object.values(map);
-}, [filteredOrders, mode]);
+}, [filteredOrders, mode, year]);
   const yoy = useMemo(() => {
   const thisYear = new Date().getFullYear();
   let current = 0;
