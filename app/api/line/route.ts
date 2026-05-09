@@ -149,7 +149,7 @@ ${parsedItems
         },
         {
           type: "text",
-          text: `$${i.price}`,
+          text: `單價:$${i.price}`,
           size: "sm",
           color: "#16a34a",
           weight: "bold"

@@ -17,7 +17,7 @@ export default function OpsPage() {
 
   const [orders, setOrders] = useState<any[]>([]);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [mode, setMode] = useState<Mode>("month");
+  const [mode, setMode] = useState<"day" | "week" | "month" | "year">("month");
 
   const [filterMode, setFilterMode] = useState<"all" | "range">("all");
   const [startDate, setStartDate] = useState("");
@@ -68,7 +68,23 @@ export default function OpsPage() {
     return true;
   });
 }, [orders, filterMode, startDate, endDate]);
+  const topRevenue = useMemo(() => {
+  const map: Record<string, any> = {};
 
+  filteredOrders.forEach((o) => {
+    o.items?.forEach((it: any) => {
+      if (!map[it.name]) {
+        map[it.name] = { name: it.name, revenue: 0 };
+      }
+
+      map[it.name].revenue += it.price * it.qty;
+    });
+  });
+
+  return Object.values(map)
+    .sort((a: any, b: any) => b.revenue - a.revenue)
+    .slice(0, 8);
+}, [filteredOrders]);
   // 🔥 KPI
   const kpi = useMemo(() => {
     let revenue = 0;
@@ -81,36 +97,67 @@ export default function OpsPage() {
 
     return { revenue, cost, profit: revenue - cost };
   }, [filteredOrders]);
-
+  
   // 🔥 趨勢
   const trendData = useMemo(() => {
-    const map: Record<string, any> = {};
+  const map: Record<string, any> = {};
 
-    filteredOrders.forEach((o) => {
-      const d = toDate(o);
-      if (!d || d.getFullYear() !== year) return;
+  filteredOrders.forEach((o) => {
+    const d = toDate(o);
+    if (!d) return;
 
-      let key = "";
+    let key = "";
 
-      if (mode === "month") {
-        key = `${d.getMonth() + 1}月`;
-      } else {
-        const w = Math.ceil(d.getDate() / 7);
-        key = `${d.getMonth() + 1}月-第${w}週`;
-      }
+    if (mode === "day") {
+      key = `${d.getMonth() + 1}/${d.getDate()}`;
+    } else if (mode === "week") {
+      const w = Math.ceil(d.getDate() / 7);
+      key = `${d.getMonth() + 1}月-第${w}週`;
+    } else if (mode === "month") {
+      key = `${d.getMonth() + 1}月`;
+    } else {
+      key = `${d.getFullYear()}`;
+    }
 
-      if (!map[key]) {
-        map[key] = { period: key, revenue: 0, cost: 0, profit: 0 };
-      }
+    if (!map[key]) {
+      map[key] = { period: key, revenue: 0, cost: 0, profit: 0 };
+    }
 
-      map[key].revenue += o.total || 0;
-      map[key].cost += (o.costTotal || 0) + (o.packagingCost || 0);
-      map[key].profit = map[key].revenue - map[key].cost;
-    });
+    map[key].revenue += o.total || 0;
+    map[key].cost += (o.costTotal || 0) + (o.packagingCost || 0);
+    map[key].profit = map[key].revenue - map[key].cost;
+  });
 
-    return Object.values(map);
-  }, [filteredOrders, year, mode]);
+  return Object.values(map);
+}, [filteredOrders, mode]);
+  const yoy = useMemo(() => {
+  const thisYear = new Date().getFullYear();
+  let current = 0;
+  let last = 0;
 
+  orders.forEach((o) => {
+    const d = toDate(o);
+    if (!d) return;
+
+    if (d.getFullYear() === thisYear) current += o.total || 0;
+    if (d.getFullYear() === thisYear - 1) last += o.total || 0;
+  });
+
+  return {
+    current,
+    last,
+    growth: last ? ((current - last) / last) * 100 : 0,
+  };
+}, [orders]);
+  const orderStats = useMemo(() => {
+  const count = filteredOrders.length;
+  const revenue = filteredOrders.reduce((s, o) => s + (o.total || 0), 0);
+
+  return {
+    count,
+    avg: count ? revenue / count : 0,
+  };
+}, [filteredOrders]);
   // 🔥 排行
   const ranking = useMemo(() => {
     const map: Record<string, any> = {};
@@ -162,7 +209,12 @@ export default function OpsPage() {
           </>
         )}
       </div>
-
+        <div className="p-4 bg-yellow-50 border">
+  <p>📈 年成長率</p>
+  <p className="text-xl font-bold">
+    {yoy.growth.toFixed(1)}%
+  </p>
+</div>
       {/* KPI */}
       <div className="grid grid-cols-3 gap-4">
         <div className="p-4 bg-green-50 border">
@@ -190,6 +242,15 @@ export default function OpsPage() {
         <button onClick={() => setMode("month")} className="bg-blue-500 text-white px-2">月</button>
         <button onClick={() => setMode("week")} className="bg-gray-500 text-white px-2">週</button>
       </div>
+      <div className="p-4 bg-purple-50 border">
+  <p>🧾 訂單數</p>
+  <p className="text-xl font-bold">{orderStats.count}</p>
+</div>
+
+<div className="p-4 bg-indigo-50 border">
+  <p>💰 客單價</p>
+  <p className="text-xl font-bold">${orderStats.avg.toFixed(0)}</p>
+</div>
         <h2 className="font-bold text-lg mb-2">
             🔥 營收分析圖
         </h2>
@@ -216,8 +277,14 @@ export default function OpsPage() {
           <YAxis />
           <Tooltip />
           <Bar dataKey="qty" />
+          </BarChart>
+          </ResponsiveContainer>
+          <BarChart data={topRevenue}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="revenue" />
         </BarChart>
-      </ResponsiveContainer>
         <h2 className="font-bold text-lg mb-2">
             💰 高利潤商品排行
         </h2>
