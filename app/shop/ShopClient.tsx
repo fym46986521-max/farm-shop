@@ -73,15 +73,7 @@ useEffect(() => {
         liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
       });
 
-      // ⭐ 沒登入直接登入
-      if (!liff.isLoggedIn()) {
-
-        liff.login({
-          redirectUri: "https://judoufarm.com/shop",
-        });
-
-        return;
-      }
+      
 
       // ⭐ 已登入才抓 profile
       const profile = await liff.getProfile();
@@ -268,9 +260,13 @@ useEffect(() => {
 
           const uid = localStorage.getItem("lineUserId");
           if (!uid) {
-            alert("請先LINE登入後再下單");
-            return;
-          }
+
+  liff.login({
+    redirectUri: "https://judoufarm.com/checkout",
+  });
+
+  return;
+}
 
           router.push("/checkout");
         }}
