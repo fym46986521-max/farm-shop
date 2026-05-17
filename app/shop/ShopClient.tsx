@@ -87,20 +87,54 @@ useEffect(() => {
       : products.filter((p) => p.category === category);
 
   const addToCart = (item: any) => {
-    const exist = cart.find((c) => c.id === item.id);
 
-    let newCart;
-    if (exist) {
-      newCart = cart.map((c) =>
-        c.id === item.id ? { ...c, qty: c.qty + item.qty } : c
-      );
-    } else {
-      newCart = [...cart, item];
-    }
+  // ⭐ 找商品最新庫存
+  const product = products.find((p) => p.id === item.id);
 
-    setCart(newCart);
-    localStorage.setItem("cart", JSON.stringify(newCart));
-  };
+  if (!product) {
+    alert("商品不存在");
+    return;
+  }
+
+  // ⭐ 已存在購物車數量
+  const exist = cart.find((c) => c.id === item.id);
+
+  const currentQty = exist ? exist.qty : 0;
+
+  // ⭐ 總數量
+  const finalQty = currentQty + item.qty;
+
+  // ⭐ 超過庫存
+  if (finalQty > (product.stock || 0)) {
+    alert("庫存不足，請重新選購");
+    return;
+  }
+
+  // ⭐ 沒庫存
+  if ((product.stock || 0) <= 0) {
+    alert("商品已售完");
+    return;
+  }
+
+  let newCart;
+
+  if (exist) {
+    newCart = cart.map((c) =>
+      c.id === item.id
+        ? { ...c, qty: c.qty + item.qty }
+        : c
+    );
+  } else {
+    newCart = [...cart, item];
+  }
+
+  setCart(newCart);
+
+  localStorage.setItem(
+    "cart",
+    JSON.stringify(newCart)
+  );
+};
 
   const changeQty = (id: string, delta: number) => {
     const newCart = cart.map((item) =>
@@ -246,9 +280,23 @@ useEffect(() => {
           {filteredProducts.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl shadow-md p-2 border border-green-100">
 
-              <div className="w-full h-[220px] flex items-center justify-center bg-gradient-to-b from-white to-green-50 rounded">
-                <img src={item.image} className="max-h-[200px] object-contain" />
-              </div>
+              <div className="relative w-full h-[220px] flex items-center justify-center bg-gradient-to-b from-white to-green-50 rounded">
+
+  {(item.stock || 0) <= 0 && (
+    <div
+      className="
+        absolute top-2 right-2
+        bg-red-500 text-white
+        text-xs px-2 py-1
+        rounded-full z-10
+      "
+    >
+      已售完
+    </div>
+  )}
+
+  <img src={item.image} className="max-h-[200px] object-contain" />
+</div>
 
               <p className="font-bold mt-2 text-base leading-tight">
                 {item.name}
@@ -261,7 +309,9 @@ useEffect(() => {
               <p className="text-green-600 font-bold text-lg mt-1">
                 ${item.price}
               </p>
-
+              <p className="text-sm text-blue-600 mt-1">
+                剩餘庫存：{item.stock || 0}
+              </p>
               <button
                 onClick={() => {
                   setSelectedProduct(item);
@@ -339,6 +389,9 @@ useEffect(() => {
   <p className="text-2xl text-green-600 font-black text-left mt-2">
     ${selectedProduct.price}
   </p>
+  <p className="text-sm text-blue-600 mt-1">
+  剩餘庫存：{selectedProduct.stock || 0}
+</p>
   {/* ⭐ 快速購買區 */}
 <div className="mt-4 bg-green-50 border rounded-2xl p-4">
 
@@ -359,7 +412,15 @@ useEffect(() => {
     </span>
 
     <button
-      onClick={() => setQty(q => q + 1)}
+      onClick={() => {
+
+  if (qty >= (selectedProduct.stock || 0)) {
+    alert("庫存不足，請重新選購");
+    return;
+  }
+
+  setQty(q => q + 1);
+}}
       className="
         w-10 h-10 rounded-full
         bg-white border text-xl

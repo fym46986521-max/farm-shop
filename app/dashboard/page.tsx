@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
   const [packaging, setPackaging] = useState({
     large: 0,
     medium: 0,
@@ -384,7 +385,7 @@ if (detailFiles.length > 0) {
   name,
   price: Number(price),
   cost: Number(costInput || 0),
-
+  stock: Number(stock || 0),
   image,
   detailImages, // ⭐
 
@@ -399,6 +400,7 @@ if (detailFiles.length > 0) {
 
     setName("");
     setPrice("");
+    setStock("");
     setFile(null);
     setPreview("");
     setDescription("");
@@ -577,6 +579,13 @@ if (detailFiles.length > 0) {
           onChange={(e) => setCostInput(e.target.value)}
           className="border p-2"
         />
+        <input
+          type="number"
+          placeholder="庫存數量"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+          className="border p-2"
+        />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -678,6 +687,36 @@ if (detailFiles.length > 0) {
                   </p>
                   <p>{item.category}</p>
                   <p>💰 ${item.price}</p>
+                  <div className="mt-2">
+  <p className="text-sm text-blue-600 mb-1">
+    庫存
+  </p>
+
+  <input
+    type="number"
+    value={item.stock || 0}
+    onChange={async (e) => {
+
+      const newStock = Number(e.target.value);
+
+      const updated = products.map((p) =>
+        p.id === item.id
+          ? { ...p, stock: newStock }
+          : p
+      );
+
+      setProducts(updated);
+
+      await updateDoc(
+        doc(db, "products", item.id),
+        {
+          stock: newStock,
+        }
+      );
+    }}
+    className="border p-1 w-24"
+  />
+</div>
                   <p className="text-sm text-gray-500">
                     成本：${item.cost || 0}
                   </p>

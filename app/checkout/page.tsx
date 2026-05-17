@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import {
   collection,
   addDoc,
+  getDocs,
   serverTimestamp,
   doc,
   runTransaction,
@@ -38,7 +39,7 @@ export default function CheckoutPage() {
   // ⭐ 計算
   const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   const costTotal = cart.reduce((sum, item) => sum + (item.cost || 0) * item.qty, 0);
-
+  const [products, setProducts] = useState<any[]>([]);
   const finalShipping =
     deliveryType === "pickup"
       ? 0
@@ -85,9 +86,32 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("cart");
+    
     if (saved) setCart(JSON.parse(saved));
   }, []);
+  useEffect(() => {
 
+  const fetchProducts = async () => {
+
+    const snapshot = await getDocs(
+      collection(db, "products")
+    );
+
+    const list: any[] = [];
+
+    snapshot.forEach((doc) => {
+      list.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    setProducts(list);
+  };
+
+  fetchProducts();
+
+}, []);
   useEffect(() => {
     const fetchShipping = async () => {
       const ref = doc(db, "settings", "shipping");
@@ -119,13 +143,36 @@ export default function CheckoutPage() {
   };
 
   const changeQty = (id: string, delta: number) => {
-    const newCart = cart.map((item) =>
-      item.id === id
-        ? { ...item, qty: Math.max(1, item.qty + delta) }
-        : item
+
+  const newCart = cart.map((item) => {
+
+    if (item.id !== id) return item;
+
+    const product = products.find(
+      (p) => p.id === item.id
     );
-    updateCart(newCart);
-  };
+
+    const newQty = item.qty + delta;
+
+    // ⭐ 不可低於1
+    if (newQty < 1) return item;
+
+    // ⭐ 超過庫存
+    if (newQty > (product?.stock || 0)) {
+
+      alert("庫存不足，請重新選購");
+
+      return item;
+    }
+
+    return {
+      ...item,
+      qty: newQty,
+    };
+  });
+
+  updateCart(newCart);
+};
 
   const removeItem = (id: string) => {
     const newCart = cart.filter((item) => item.id !== id);
@@ -200,7 +247,36 @@ const orderNo = await runTransaction(db, async (t) => {
 
   return `${y}${m}${day}-${String(n).padStart(5, "0")}`;
 });
+// ⭐ 檢查庫存 + 扣庫存
+for (const item of cart) {
 
+  const productRef = doc(db, "products", item.id);
+
+  await runTransaction(db, async (transaction) => {
+
+    const productSnap = await transaction.get(productRef);
+
+    if (!productSnap.exists()) {
+      throw new Error(`${item.name} 商品不存在`);
+    }
+
+    const productData = productSnap.data();
+
+    const currentStock = productData.stock || 0;
+
+    // ⭐ 庫存不足
+    if (currentStock < item.qty) {
+      throw new Error(
+        `${item.name} 庫存不足，請重新選購`
+      );
+    }
+
+    // ⭐ 扣庫存
+    transaction.update(productRef, {
+      stock: currentStock - item.qty,
+    });
+  });
+}
       await addDoc(collection(db, "orders"), {
         orderNo,
         payment: "cod",
