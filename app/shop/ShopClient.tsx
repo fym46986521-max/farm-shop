@@ -133,7 +133,7 @@ useEffect(() => {
       {/* LOGO */}
       <div className="text-center mb-4">
         <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-500 via-lime-400 to-blue-500 text-transparent bg-clip-text drop-shadow">
-          🌾 九斗農業生產合作社
+          🌾 九斗合作農場
         </h1>
         <p className="text-sm text-green-900 font-semibold mt-1">
           新鮮直送｜健康安心｜在地農產

@@ -1,9 +1,8 @@
 "use client";
 import {
-  getStorage,
   ref,
   getDownloadURL,
-  uploadString,
+  uploadBytes,
 } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
@@ -170,38 +169,66 @@ try {
   fetchShipping(); // ⭐ 這行你缺了
 }, []);
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const reader = new FileReader();
+  const compressImage = (file: File): Promise<Blob> => {
 
-      reader.readAsDataURL(file);
+  return new Promise((resolve, reject) => {
 
-      reader.onload = (e) => {
-        img.src = e.target?.result as string;
-      };
+    const img = new Image();
+    const reader = new FileReader();
 
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
+    reader.readAsDataURL(file);
 
-        const MAX_WIDTH = 800;
-        const scale = Math.min(1, MAX_WIDTH / img.width);
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
 
-        canvas.width = img.width * scale;
+    img.onerror = reject;
 
-canvas.height = Math.min(
-  img.height * scale,
-  3000
-);
+    img.onload = () => {
 
+      const canvas = document.createElement("canvas");
 
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const MAX_WIDTH = 800;
 
-        resolve(canvas.toDataURL("image/jpeg", 0.8));
-      };
-    });
-  };
+      const scale = Math.min(
+        1,
+        MAX_WIDTH / img.width
+      );
+
+      canvas.width = img.width * scale;
+
+      canvas.height = Math.min(
+        img.height * scale,
+        3000
+      );
+
+      const ctx = canvas.getContext("2d");
+
+      ctx?.drawImage(
+        img,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      canvas.toBlob(
+        (blob) => {
+
+          if (!blob) {
+            reject("blob失敗");
+            return;
+          }
+
+          resolve(blob);
+
+        },
+        "image/webp",
+        0.7
+      );
+    };
+  });
+};
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
@@ -236,11 +263,10 @@ if (file) {
     );
 
     // ⭐ 上傳base64壓縮圖
-    await uploadString(
-      fileRef,
-      compressed,
-      "data_url"
-    );
+    await uploadBytes(
+  fileRef,
+  compressed
+);
 
     // ⭐ 取得網址
     image = await getDownloadURL(fileRef);
@@ -266,11 +292,10 @@ if (detailFiles.length > 0) {
       `product-details/${Date.now()}_${f.name}`
     );
 
-    await uploadString(
-      fileRef,
-      compressed,
-      "data_url"
-    );
+    await uploadBytes(
+  fileRef,
+  compressed
+);
 
     return await getDownloadURL(fileRef);
   })

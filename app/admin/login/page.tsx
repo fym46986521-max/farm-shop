@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-    if (account === "admin" && password === "JiuDoufarm5038") {
+    if (account === "admin" && password === "jdf5038") {
       localStorage.setItem("admin", "true");
       router.push("/dashboard");
     } else {
