@@ -291,7 +291,7 @@ if (!liff.isLoggedIn()) {
   return;
 }
 
-      // ⭐ 已登入直接進 checkou
+      // ⭐ 已登入直接進 checkout
       router.push("/checkout");
 
     } catch (err) {
