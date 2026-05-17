@@ -46,6 +46,25 @@ const [lineUserId, setLineUserId] = useState("");
 
 useEffect(() => {
 
+  // ⭐ 先讀快取
+  const cached = localStorage.getItem("products");
+
+  if (cached) {
+
+    try {
+
+      const parsed = JSON.parse(cached);
+
+      setProducts(parsed);
+
+      console.log("⚡ 使用快取商品");
+
+    } catch (err) {
+
+      console.error("快取解析失敗", err);
+    }
+  }
+
   const init = async () => {
 
     try {
@@ -58,8 +77,8 @@ useEffect(() => {
       if (!liff.isLoggedIn()) {
 
         liff.login({
-  redirectUri: "https://judoufarm.com/shop",
-});
+          redirectUri: "https://judoufarm.com/shop",
+        });
 
         return;
       }
@@ -67,14 +86,14 @@ useEffect(() => {
       // ⭐ 已登入才抓 profile
       const profile = await liff.getProfile();
 
-setLineUserId(profile.userId);
+      setLineUserId(profile.userId);
 
-localStorage.setItem(
-  "lineUserId",
-  profile.userId
-);
+      localStorage.setItem(
+        "lineUserId",
+        profile.userId
+      );
 
-console.log("LINE登入成功", profile);
+      console.log("LINE登入成功", profile);
 
     } catch (err) {
 
@@ -83,6 +102,9 @@ console.log("LINE登入成功", profile);
   };
 
   init();
+
+  // ⭐ 背景更新 Firebase 商品
+  fetchProducts();
 
 }, []);
 
