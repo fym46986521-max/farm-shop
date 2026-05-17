@@ -188,7 +188,10 @@ try {
         const scale = Math.min(1, MAX_WIDTH / img.width);
 
         canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scale;
+        canvas.height = Math.min(
+  img.height * scale,
+  3000
+);
 
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
