@@ -290,32 +290,145 @@ useEffect(() => {
 
       {/* 彈窗 */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-4 w-[90%] max-w-sm rounded-xl text-center">
-            <img src={selectedProduct.image} className="w-full h-40 object-contain bg-gray-100 rounded mb-2" />
-            <h2 className="font-bold">{selectedProduct.name}</h2>
-            <p className="text-lg text-green-600 mb-2">${selectedProduct.price}</p>
-            <p className="text-sm text-gray-500 mb-2">{selectedProduct.description}</p>
+        <div
+  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+  onClick={() => setSelectedProduct(null)}
+>
+  
+          <button
+  onClick={() => setSelectedProduct(null)}
+  className="
+    absolute top-3 right-3
+    bg-white/80
+    rounded-full
+    w-10 h-10
+    text-xl
+    shadow
+  "
+>
+  ✕
+</button>
+          <div
+  onClick={(e) => e.stopPropagation()}
+  className="
+    bg-white
+    w-[95%]
+    max-w-md
+    h-[90vh]
+    rounded-2xl
+    overflow-hidden
+    flex
+    flex-col
+  "
+>   
+            {/* 內容區 */}
+<div className="flex-1 overflow-y-auto p-4">
 
-            <div className="flex justify-center gap-4">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))}>－</button>
-              <span>{qty}</span>
-              <button onClick={() => setQty(q => q + 1)}>＋</button>
-            </div>
+  {/* 商品主圖 */}
+  <img
+    src={selectedProduct.image}
+    className="w-full rounded-xl bg-gray-100 mb-3"
+  />
 
-            <button
-              onClick={() => {
-                addToCart({ ...selectedProduct, qty });
-                setSelectedProduct(null);
-              }}
-              className="bg-green-500 text-white w-full mt-2 py-2 rounded-lg"
-            >
-              加入
-            </button>
+  {/* 商品名稱 */}
+  <h2 className="font-bold text-xl text-left">
+    {selectedProduct.name}
+  </h2>
 
-            <button onClick={() => setSelectedProduct(null)} className="mt-2 w-full">
-              取消
-            </button>
+  {/* 價格 */}
+  <p className="text-2xl text-green-600 font-black text-left mt-2">
+    ${selectedProduct.price}
+  </p>
+  {/* ⭐ 快速購買區 */}
+<div className="mt-4 bg-green-50 border rounded-2xl p-4">
+
+  <div className="flex justify-center items-center gap-4 mb-4">
+
+    <button
+      onClick={() => setQty(q => Math.max(1, q - 1))}
+      className="
+        w-10 h-10 rounded-full
+        bg-white border text-xl
+      "
+    >
+      －
+    </button>
+
+    <span className="text-2xl font-bold">
+      {qty}
+    </span>
+
+    <button
+      onClick={() => setQty(q => q + 1)}
+      className="
+        w-10 h-10 rounded-full
+        bg-white border text-xl
+      "
+    >
+      ＋
+    </button>
+  </div>
+
+  <button
+    onClick={() => {
+      addToCart({ ...selectedProduct, qty });
+      setSelectedProduct(null);
+    }}
+    className="
+      bg-green-500
+      text-white
+      w-full
+      py-4
+      rounded-2xl
+      text-lg
+      font-bold
+    "
+  >
+    加入購物車
+  </button>
+  
+</div>
+  {/* 短描述 */}
+  <p className="text-sm text-gray-500 mt-2 text-left">
+    {selectedProduct.description}
+  </p>
+
+  {/* ⭐ 詳細文字 */}
+  {selectedProduct.detailDescription && (
+    <div className="mt-5">
+      <h3 className="font-bold text-left mb-2">
+        商品介紹
+      </h3>
+
+      <p className="text-sm whitespace-pre-wrap text-left leading-7">
+        {selectedProduct.detailDescription}
+      </p>
+    </div>
+  )}
+
+  {/* ⭐ 詳細長圖 */}
+  {selectedProduct.detailImages?.length > 0 && (
+    <div className="mt-5 flex flex-col gap-3">
+      {selectedProduct.detailImages.map(
+        (img: string, i: number) => (
+          <img
+            key={i}
+            src={img}
+            loading="lazy"
+            decoding="async"
+            className="
+  w-full
+  max-h-[400px]
+  object-contain
+  bg-gray-50
+  rounded-xl
+"
+          />
+        )
+      )}
+    </div>
+  )}
+</div>
           </div>
         </div>
       )}

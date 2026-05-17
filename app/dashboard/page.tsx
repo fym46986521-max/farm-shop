@@ -69,6 +69,9 @@ export default function DashboardPage() {
   const [preview, setPreview] = useState("");
   const [costInput, setCostInput] = useState("");
   const [description, setDescription] = useState("");
+  const [detailDescription, setDetailDescription] = useState("");
+  const [detailFiles, setDetailFiles] = useState<File[]>([]);
+  const [detailPreviews, setDetailPreviews] = useState<string[]>([]);
   const [shippingFee, setShippingFee] = useState(120);
   const [freeThreshold, setFreeThreshold] = useState(1000);
   const [orders, setOrders] = useState<any[]>([]);
@@ -209,7 +212,7 @@ try {
 }
     console.log("🚀 開始新增");
     let image = "https://placehold.co/400x300";
-
+    
 if (file) {
   const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
   
@@ -228,17 +231,38 @@ if (file) {
 
   image = await getDownloadURL(fileRef);
 }
+let detailImages: string[] = [];
+// ⭐ 詳細圖片上傳
+if (detailFiles.length > 0) {
+  detailImages = await Promise.all(
+    detailFiles.map(async (f) => {
+      const fileRef = ref(
+        storage,
+        `product-details/${Date.now()}_${f.name}`
+      );
 
+      await uploadBytes(fileRef, f);
+
+      return await getDownloadURL(fileRef);
+    })
+  );
+}
     await addDoc(collection(db, "products"), {
-      name,
-      price: Number(price),
-      cost: Number(costInput || 0),
-      image,
-      category,
-      active: true,
-      order: products.length,
-      description,
-    });
+  name,
+  price: Number(price),
+  cost: Number(costInput || 0),
+
+  image,
+  detailImages, // ⭐
+
+  category,
+  active: true,
+  order: products.length,
+
+  description,
+
+  detailDescription, // ⭐
+});
 
     setName("");
     setPrice("");
@@ -443,7 +467,39 @@ if (file) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="border p-2 w-full"
+        />    
+        <textarea
+          placeholder="商品詳細說明"
+          value={detailDescription}
+          onChange={(e) => setDetailDescription(e.target.value)}
+          className="border p-2 w-full h-40"
         />
+
+<input
+  type="file"
+  multiple
+  accept="image/*"
+  onChange={(e) => {
+    const files = Array.from(e.target.files || []);
+
+    setDetailFiles(files);
+
+    setDetailPreviews(
+      files.map((f) => URL.createObjectURL(f))
+    );
+  }}
+/>
+
+{/* ⭐ 長圖預覽 */}
+<div className="flex flex-col gap-2 w-full">
+  {detailPreviews.map((src, i) => (
+    <img
+      key={i}
+      src={src}
+      className="w-full rounded border"
+    />
+  ))}
+</div>
 
         <button
           onClick={handleAdd}
