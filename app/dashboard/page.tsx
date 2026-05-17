@@ -1,5 +1,11 @@
 "use client";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  uploadString,
+} from "firebase/storage";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -229,23 +235,29 @@ if (file) {
   alert("圖片上傳失敗");
 }
 
-  image = await getDownloadURL(fileRef);
 }
 let detailImages: string[] = [];
 // ⭐ 詳細圖片上傳
 if (detailFiles.length > 0) {
   detailImages = await Promise.all(
-    detailFiles.map(async (f) => {
-      const fileRef = ref(
-        storage,
-        `product-details/${Date.now()}_${f.name}`
-      );
+  detailFiles.map(async (f) => {
 
-      await uploadBytes(fileRef, f);
+    const compressed = await compressImage(f);
 
-      return await getDownloadURL(fileRef);
-    })
-  );
+    const fileRef = ref(
+      storage,
+      `product-details/${Date.now()}_${f.name}`
+    );
+
+    await uploadString(
+      fileRef,
+      compressed,
+      "data_url"
+    );
+
+    return await getDownloadURL(fileRef);
+  })
+);
 }
     await addDoc(collection(db, "products"), {
   name,
@@ -494,10 +506,17 @@ if (detailFiles.length > 0) {
 <div className="flex flex-col gap-2 w-full">
   {detailPreviews.map((src, i) => (
     <img
-      key={i}
-      src={src}
-      className="w-full rounded border"
-    />
+  key={i}
+  src={src}
+  className="
+    w-full
+    max-h-[300px]
+    object-contain
+    rounded
+    border
+    bg-gray-50
+  "
+/>
   ))}
 </div>
 
