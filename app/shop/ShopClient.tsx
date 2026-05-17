@@ -266,15 +266,16 @@ if (liff.isLoggedIn()) {
             return;
           }
 
-          const uid = localStorage.getItem("lineUserId");
-          if (!uid) {
+          if (!liff.isLoggedIn()) {
 
   liff.login({
-  redirectUri: "https://judoufarm.com/shop",
-});
+    redirectUri: "https://judoufarm.com/shop",
+  });
 
   return;
 }
+
+router.push("/checkout");
 
           router.push("/checkout");
         }}
