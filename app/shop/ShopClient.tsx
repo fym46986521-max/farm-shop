@@ -271,7 +271,7 @@ if (liff.isLoggedIn()) {
     try {
 
       // ⭐ 保證 LIFF 初始化
-      // ⭐ 保證 LIFF 初始化
+      // ⭐ 保證 LIFF 初始
 // ⭐ 未登入就 LINE Login
 if (!liff.isLoggedIn()) {
 
