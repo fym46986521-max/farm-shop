@@ -407,27 +407,24 @@ useEffect(() => {
   )}
 
   {/* ⭐ 詳細長圖 */}
-  {selectedProduct.detailImages?.length > 0 && (
-    <div className="mt-5 flex flex-col gap-3">
-      {selectedProduct.detailImages.map(
-        (img: string, i: number) => (
-          <img
-            key={i}
-            src={img}
-            loading="lazy"
-            decoding="async"
-            className="
-  w-full
-  max-h-[400px]
-  object-contain
-  bg-gray-50
-  rounded-xl
-"
-          />
-        )
-      )}
-    </div>
-  )}
+  <div className="space-y-4 mt-4">
+
+  {selectedProduct.detailImages?.map((img: string, i: number) => (
+
+    <img
+      key={i}
+      src={img}
+      loading="lazy"
+      decoding="async"
+      className="
+        w-full
+        h-auto
+        rounded-xl
+      "
+    />
+  ))}
+
+</div>
 </div>
           </div>
         </div>
