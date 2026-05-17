@@ -76,16 +76,24 @@ useEffect(() => {
       
 
       // ⭐ 已登入才抓 profile
-      const profile = await liff.getProfile();
+      // ⭐ 已登入才抓 profile
+if (liff.isLoggedIn()) {
 
-      setLineUserId(profile.userId);
+  const profile = await liff.getProfile();
 
-      localStorage.setItem(
-        "lineUserId",
-        profile.userId
-      );
+  setLineUserId(profile.userId);
 
-      console.log("LINE登入成功", profile);
+  localStorage.setItem(
+    "lineUserId",
+    profile.userId
+  );
+
+  console.log("LINE登入成功", profile);
+
+} else {
+
+  console.log("尚未LINE登入");
+}
 
     } catch (err) {
 
@@ -262,8 +270,8 @@ useEffect(() => {
           if (!uid) {
 
   liff.login({
-    redirectUri: "https://judoufarm.com/checkout",
-  });
+  redirectUri: "https://judoufarm.com/shop",
+});
 
   return;
 }
