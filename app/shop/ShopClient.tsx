@@ -133,9 +133,9 @@ useEffect(() => {
       {/* LOGO */}
       <div className="text-center mb-4">
         <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-500 via-lime-400 to-blue-500 text-transparent bg-clip-text drop-shadow">
-          🌾 九斗合作農場
+          九斗合作農場
         </h1>
-        <p className="text-sm text-green-900 font-semibold mt-1">
+        <p className="text-sm text-red-900 font-semibold mt-1">
           新鮮直送｜健康安心｜在地農產
         </p>
         
@@ -228,11 +228,11 @@ useEffect(() => {
           <h1 className="text-lg font-bold mb-2">商品商城</h1>
 
           <div className="flex gap-2 overflow-x-auto">
-            {["全部", "水果", "蔬菜", "其他"].map((c) => (
+            {["全部", "水果", "蔬菜","加工農產品", "其他"].map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
-                className={`px-3 py-2 rounded text-sm font-semibold ${
+                className={`px-3 py-2 rounded text-sSm font-semibold ${
                   category === c ? "bg-green-500 text-white" : "bg-gray-200"
                 }`}
               >

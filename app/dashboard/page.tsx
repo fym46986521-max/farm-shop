@@ -584,6 +584,7 @@ if (detailFiles.length > 0) {
         >
           <option>水果</option>
           <option>蔬菜</option>
+          <option>加工農產品</option>
           <option>其他</option>
         </select>
 
