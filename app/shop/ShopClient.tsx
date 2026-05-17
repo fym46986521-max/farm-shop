@@ -275,14 +275,18 @@ if (liff.isLoggedIn()) {
 // ⭐ 未登入就 LINE Login
 if (!liff.isLoggedIn()) {
 
-  window.location.href =
-    `https://access.line.me/oauth2/v2.1/authorize?` +
-    `response_type=code` +
+  const loginUrl =
+    `https://access.line.me/oauth2/v2.1/authorize` +
+    `?response_type=code` +
     `&client_id=${process.env.NEXT_PUBLIC_LINE_LOGIN_CHANNEL_ID}` +
     `&redirect_uri=${encodeURIComponent("https://judoufarm.com/shop")}` +
-    `&state=login` +
+    `&state=12345` +
     `&scope=profile%20openid` +
     `&bot_prompt=normal`;
+
+  console.log(loginUrl);
+
+  window.location.href = loginUrl;
 
   return;
 }
