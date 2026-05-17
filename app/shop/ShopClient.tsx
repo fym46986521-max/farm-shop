@@ -18,7 +18,7 @@ export default function ShopClient() {
 
   const [category, setCategory] = useState("全部");
   const [showEmptyAlert, setShowEmptyAlert] = useState(false);
-const [lineId, setLineId] = useState("");
+const [lineUserId, setLineUserId] = useState("");
 
 
 
@@ -45,40 +45,45 @@ const [lineId, setLineId] = useState("");
   
 
 useEffect(() => {
+
   const init = async () => {
+
     try {
+
       await liff.init({
-        liffId: "2009965103-C4wyKwKd",
-        withLoginOnExternalBrowser: true,
+        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
       });
 
+      // ⭐ 沒登入直接登入
       if (!liff.isLoggedIn()) {
-        liff.login();
+
+        liff.login({
+          redirectUri: window.location.href,
+        });
+
         return;
       }
 
-      await liff.ready;
-
+      // ⭐ 已登入才抓 profile
       const profile = await liff.getProfile();
-      setLineId(profile.userId);
-      localStorage.setItem("lineUserId", profile.userId);
-    } catch (e) {
-      console.error("LIFF init error", e);
+
+setLineUserId(profile.userId);
+
+localStorage.setItem(
+  "lineUserId",
+  profile.userId
+);
+
+console.log("LINE登入成功", profile);
+
+    } catch (err) {
+
+      console.error("LIFF初始化失敗", err);
     }
   };
 
   init();
 
-  // ⭐⭐⭐ 加這段（先用快取）
-  const cached = localStorage.getItem("products");
-  if (cached) {
-    setProducts(JSON.parse(cached));
-  }
-
-  fetchProducts(); // 再去更新最新資料
-
-  const saved = localStorage.getItem("cart");
-  if (saved) setCart(JSON.parse(saved));
 }, []);
 
   const filteredProducts =
