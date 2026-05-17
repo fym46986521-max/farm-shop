@@ -342,25 +342,43 @@ let detailImages: string[] = [];
 
 if (detailFiles.length > 0) {
 
-  detailImages = await Promise.all(
+  for (const f of detailFiles) {
 
-    detailFiles.map(async (f) => {
+    try {
+
+      console.log("🚀 開始處理:", f.name);
 
       const webp = await convertToWebP(f);
+
+      console.log("✅ WebP完成");
 
       const fileRef = ref(
         storage,
         `product-details/${Date.now()}_${f.name}.webp`
       );
 
+      console.log("🚀 開始上傳");
+
       await uploadBytes(
         fileRef,
         webp
       );
 
-      return await getDownloadURL(fileRef);
-    })
-  );
+      console.log("✅ 上傳成功");
+
+      const url = await getDownloadURL(fileRef);
+
+      detailImages.push(url);
+
+    } catch (e) {
+
+      console.error("❌ 詳細圖失敗:", e);
+
+      alert(`長圖失敗: ${f.name}`);
+
+      return; // ⭐ 全部中止
+    }
+  }
 }
     await addDoc(collection(db, "products"), {
   name,
