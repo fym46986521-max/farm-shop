@@ -271,14 +271,21 @@ if (liff.isLoggedIn()) {
     try {
 
       // ⭐ 保證 LIFF 初始化
-      if (!liff.isInClient() && !liff.isLoggedIn()) {
+      // ⭐ 保證 LIFF 初始化
+// ⭐ 未登入就 LINE Login
+if (!liff.isLoggedIn()) {
 
-        liff.login({
-          redirectUri: "https://judoufarm.com/shop",
-        });
+  window.location.href =
+    `https://access.line.me/oauth2/v2.1/authorize?` +
+    `response_type=code` +
+    `&client_id=${process.env.NEXT_PUBLIC_LINE_LOGIN_CHANNEL_ID}` +
+    `&redirect_uri=${encodeURIComponent("https://judoufarm.com/shop")}` +
+    `&state=login` +
+    `&scope=profile%20openid` +
+    `&bot_prompt=normal`;
 
-        return;
-      }
+  return;
+}
 
       // ⭐ 已登入直接進 checkout
       router.push("/checkout");
