@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter} from "next/navigation";
 import liff from "@line/liff";
 export default function ShopClient() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  
 
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
@@ -259,30 +259,41 @@ if (liff.isLoggedIn()) {
       <div className="font-bold mb-2">總金額：${total}</div>
 
       {/* 結帳 */}
-      <button
-        onClick={() => {
-          if (cart.length === 0) {
-            setShowEmptyAlert(true);
-            return;
-          }
+      {/* 結帳 */}
+<button
+  onClick={async () => {
 
-          if (!liff.isLoggedIn()) {
+    if (cart.length === 0) {
+      setShowEmptyAlert(true);
+      return;
+    }
 
-  liff.login({
-    redirectUri: "https://judoufarm.com/shop",
-  });
+    try {
 
-  return;
-}
+      // ⭐ 保證 LIFF 初始化
+      if (!liff.isInClient() && !liff.isLoggedIn()) {
 
-router.push("/checkout");
+        liff.login({
+          redirectUri: "https://judoufarm.com/shop",
+        });
 
-          router.push("/checkout");
-        }}
-        className="bg-green-600 text-white py-3 rounded-lg"
-      >
-        結帳
-      </button>
+        return;
+      }
+
+      // ⭐ 已登入直接進 checkout
+      router.push("/checkout");
+
+    } catch (err) {
+
+      console.error("結帳失敗", err);
+
+      alert("LINE登入失敗");
+    }
+  }}
+  className="bg-green-600 text-white py-3 rounded-lg"
+>
+  結帳
+</button>
     </div>
     </div>
 )}
