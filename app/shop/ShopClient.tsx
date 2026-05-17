@@ -58,8 +58,8 @@ useEffect(() => {
       if (!liff.isLoggedIn()) {
 
         liff.login({
-          redirectUri: window.location.href,
-        });
+  redirectUri: "https://judoufarm.com/shop",
+});
 
         return;
       }
