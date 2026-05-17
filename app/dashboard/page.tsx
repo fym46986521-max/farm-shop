@@ -229,7 +229,57 @@ try {
     };
   });
 };
+const convertToWebP = (file: File): Promise<Blob> => {
 
+  return new Promise((resolve, reject) => {
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.readAsDataURL(file);
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    img.onerror = reject;
+
+    img.onload = () => {
+
+      const canvas = document.createElement("canvas");
+
+      // ⭐ 保持原尺寸
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      const ctx = canvas.getContext("2d");
+
+      ctx?.drawImage(
+        img,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      // ⭐ 轉 WebP
+      canvas.toBlob(
+        (blob) => {
+
+          if (!blob) {
+            reject("WebP失敗");
+            return;
+          }
+
+          resolve(blob);
+
+        },
+        "image/webp",
+        0.75 // ⭐ 品質
+      );
+    };
+  });
+};
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
       alert("請選擇圖片！");
@@ -280,26 +330,28 @@ if (file) {
   }
 }
 let detailImages: string[] = [];
-// ⭐ 詳細圖片上傳
+
 if (detailFiles.length > 0) {
+
   detailImages = await Promise.all(
-  detailFiles.map(async (f) => {
 
-    const compressed = await compressImage(f);
+    detailFiles.map(async (f) => {
 
-    const fileRef = ref(
-      storage,
-      `product-details/${Date.now()}_${f.name}`
-    );
+      const webp = await convertToWebP(f);
 
-    await uploadBytes(
-  fileRef,
-  compressed
-);
+      const fileRef = ref(
+        storage,
+        `product-details/${Date.now()}_${f.name}.webp`
+      );
 
-    return await getDownloadURL(fileRef);
-  })
-);
+      await uploadBytes(
+        fileRef,
+        webp
+      );
+
+      return await getDownloadURL(fileRef);
+    })
+  );
 }
     await addDoc(collection(db, "products"), {
   name,
