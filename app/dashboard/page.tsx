@@ -2,7 +2,6 @@
 import {
   getStorage,
   ref,
-  uploadBytes,
   getDownloadURL,
   uploadString,
 } from "firebase/storage";
@@ -186,7 +185,7 @@ try {
         const canvas = document.createElement("canvas");
 
         const MAX_WIDTH = 800;
-        const scale = MAX_WIDTH / img.width;
+        const scale = Math.min(1, MAX_WIDTH / img.width);
 
         canvas.width = MAX_WIDTH;
         canvas.height = img.height * scale;
@@ -220,21 +219,34 @@ try {
     let image = "https://placehold.co/400x300";
     
 if (file) {
-  const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
-  
   try {
-  const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
 
-  await uploadBytes(fileRef, file);
+    // ⭐ 壓縮圖片
+    const compressed = await compressImage(file);
 
-  image = await getDownloadURL(fileRef);
+    // ⭐ storage位置
+    const fileRef = ref(
+      storage,
+      `products/${Date.now()}_${file.name}`
+    );
 
-  console.log("✅ 上傳成功:", image);
-} catch (e) {
-  console.error("❌ 上傳失敗:", e);
-  alert("圖片上傳失敗");
-}
+    // ⭐ 上傳base64壓縮圖
+    await uploadString(
+      fileRef,
+      compressed,
+      "data_url"
+    );
 
+    // ⭐ 取得網址
+    image = await getDownloadURL(fileRef);
+
+    console.log("✅ 上傳成功:", image);
+
+  } catch (e) {
+    console.error("❌ 上傳失敗:", e);
+    alert("圖片上傳失敗");
+    return;
+  }
 }
 let detailImages: string[] = [];
 // ⭐ 詳細圖片上傳
