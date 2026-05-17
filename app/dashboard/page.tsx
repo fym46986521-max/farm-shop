@@ -249,8 +249,17 @@ const convertToWebP = (file: File): Promise<Blob> => {
       const canvas = document.createElement("canvas");
 
       // ⭐ 保持原尺寸
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // ⭐ 長圖最大高度
+const MAX_HEIGHT = 4000;
+
+// ⭐ 等比例縮放
+const scale = Math.min(
+  1,
+  MAX_HEIGHT / img.height
+);
+
+canvas.width = img.width * scale;
+canvas.height = img.height * scale;
 
       const ctx = canvas.getContext("2d");
 
