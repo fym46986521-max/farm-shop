@@ -93,9 +93,13 @@ export default function CheckoutPage() {
 
       console.log("checkout LINE登入成功");
 
-    } catch (err) {
+    } catch (err: any) {
 
-      console.error("checkout LIFF失敗", err);
+      console.error("checkout LIFF失敗:", err);
+
+      alert(
+        err?.message || "LINE登入失敗"
+      );
     }
   };
 
