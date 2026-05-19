@@ -11,6 +11,23 @@ export default function ShopClient() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
+  useEffect(() => {
+
+  const savedCart = localStorage.getItem("cart");
+
+  if (savedCart) {
+
+    try {
+
+      setCart(JSON.parse(savedCart));
+
+    } catch (err) {
+
+      console.error("購物車讀取失敗", err);
+    }
+  }
+
+}, []);
   const [openCart, setOpenCart] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -89,6 +106,14 @@ if (liff.isLoggedIn()) {
   );
 
   console.log("LINE登入成功", profile);
+
+  // ⭐ 登入後自動 checkout
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("checkout") === "1") {
+
+    router.push("/checkout");
+  }
 
 } else {
 
@@ -275,18 +300,9 @@ if (liff.isLoggedIn()) {
 // ⭐ 未登入就 LINE Login
 if (!liff.isLoggedIn()) {
 
-  const loginUrl =
-    `https://access.line.me/oauth2/v2.1/authorize` +
-    `?response_type=code` +
-    `&client_id=${process.env.NEXT_PUBLIC_LINE_LOGIN_CHANNEL_ID}` +
-    `&redirect_uri=${encodeURIComponent("https://judoufarm.com/shop")}` +
-    `&state=12345` +
-    `&scope=profile%20openid` +
-    `&bot_prompt=normal`;
-
-  console.log(loginUrl);
-
-  window.location.href = loginUrl;
+  liff.login({
+    redirectUri: "https://judoufarm.com/shop?checkout=1",
+  });
 
   return;
 }
