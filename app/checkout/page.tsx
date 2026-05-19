@@ -1,5 +1,5 @@
 "use client";
-
+import liff from "@line/liff";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
@@ -76,13 +76,44 @@ export default function CheckoutPage() {
 
   // ⭐ 載入購物車
   useEffect(() => {
-    const uid = localStorage.getItem("lineUserId");
 
-    if (!uid) {
-      alert("請先從LINE進入");
-      router.push("/");
+  const init = async () => {
+
+    try {
+
+      await liff.init({
+        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+      });
+
+      // ⭐ 未登入
+      if (!liff.isLoggedIn()) {
+
+        liff.login({
+          redirectUri: window.location.href,
+        });
+
+        return;
+      }
+
+      // ⭐ 已登入
+      const profile = await liff.getProfile();
+
+      localStorage.setItem(
+        "lineUserId",
+        profile.userId
+      );
+
+      console.log("checkout LINE登入成功");
+
+    } catch (err) {
+
+      console.error("checkout LIFF失敗", err);
     }
-  }, []);
+  };
+
+  init();
+
+}, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("cart");
