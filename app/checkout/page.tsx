@@ -83,7 +83,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // ⭐ 已登入
+      // ⭐ 已登入.
       const profile = await liff.getProfile();
 
       localStorage.setItem(
