@@ -223,6 +223,9 @@ export default function CheckoutPage() {
   };
 
   const handleCheckout = async () => {
+
+  // ⭐ 防止重複送出
+  if (loading) return;
     if (!name || !phone) {
       alert("請填寫姓名與電話");
       return;
@@ -279,35 +282,67 @@ const orderNo = await runTransaction(db, async (t) => {
   return `${y}${m}${day}-${String(n).padStart(5, "0")}`;
 });
 // ⭐ 檢查庫存 + 扣庫存
-for (const item of cart) {
+// ⭐ 一次 transaction 處理全部商品
+await runTransaction(db, async (transaction) => {
 
-  const productRef = doc(db, "products", item.id);
+  // ⭐ 先檢查全部庫存
+  for (const item of cart) {
 
-  await runTransaction(db, async (transaction) => {
+    const productRef = doc(
+      db,
+      "products",
+      item.id
+    );
 
-    const productSnap = await transaction.get(productRef);
+    const productSnap = await transaction.get(
+      productRef
+    );
 
     if (!productSnap.exists()) {
-      throw new Error(`${item.name} 商品不存在`);
+
+      throw new Error(
+        `${item.name} 商品不存在`
+      );
     }
 
     const productData = productSnap.data();
 
-    const currentStock = productData.stock || 0;
+    const currentStock =
+      productData.stock || 0;
 
     // ⭐ 庫存不足
     if (currentStock < item.qty) {
+
       throw new Error(
         `${item.name} 庫存不足，請重新選購`
       );
     }
+  }
 
-    // ⭐ 扣庫存
+  // ⭐ 全部商品都通過後
+  // ⭐ 才開始扣庫存
+  for (const item of cart) {
+
+    const productRef = doc(
+      db,
+      "products",
+      item.id
+    );
+
+    const productSnap = await transaction.get(
+      productRef
+    );
+
+    const productData = productSnap.data();
+
+    const currentStock =
+      productData?.stock || 0;
+
     transaction.update(productRef, {
       stock: currentStock - item.qty,
     });
-  });
-}
+  }
+});
       await addDoc(collection(db, "orders"), {
         orderNo,
         payment: "cod",
@@ -490,9 +525,18 @@ try {
         </>
       )}
 
-      <button onClick={handleCheckout} className="bg-green-600 text-white w-full py-3 rounded">
-        {loading ? "送出中..." : `確認下單 $${total}`}
-      </button>
+      <button
+  onClick={handleCheckout}
+  disabled={loading}
+  className={`
+    w-full py-3 rounded text-white
+    ${loading
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-green-600"}
+  `}
+>
+  {loading ? "送出中..." : `確認下單 $${total}`}
+</button>
 
     </div>
     
