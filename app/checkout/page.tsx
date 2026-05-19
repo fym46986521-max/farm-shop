@@ -396,10 +396,16 @@ try {
       alert(`訂單成功\n訂單編號：${orderNo}`);
       router.push("/shop");
 
-    } catch (err) {
-      console.error(err);
-      alert("下單失敗");
-    } finally {
+    } catch (err: any) {
+
+  console.error("下單詳細錯誤", err);
+
+  alert(
+    err?.message ||
+    JSON.stringify(err) ||
+    "下單失敗"
+  );
+}finally {
       setLoading(false);
     }
   };
