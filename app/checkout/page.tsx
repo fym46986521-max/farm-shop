@@ -65,45 +65,15 @@ export default function CheckoutPage() {
   // ⭐ 載入購物車
   useEffect(() => {
 
-  const init = async () => {
+  const lineUserId =
+    localStorage.getItem("lineUserId");
 
-    try {
+  if (!lineUserId) {
 
-      await liff.init({
-        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
-      });
+    alert("請先從LINE進入");
 
-      // ⭐ 未登入
-      if (!liff.isLoggedIn()) {
-
-        liff.login({
-          redirectUri: window.location.href,
-        });
-
-        return;
-      }
-
-      // ⭐ 已登入.
-      const profile = await liff.getProfile();
-
-      localStorage.setItem(
-        "lineUserId",
-        profile.userId
-      );
-
-      console.log("checkout LINE登入成功");
-
-    } catch (err: any) {
-
-      console.error("checkout LIFF失敗:", err);
-
-      alert(
-        err?.message || "LINE登入失敗"
-      );
-    }
-  };
-
-  init();
+    router.push("/shop");
+  }
 
 }, []);
 
