@@ -30,7 +30,7 @@ export default function CheckoutPage() {
   const [shippingFee, setShippingFee] = useState(0);
   const [freeThreshold, setFreeThreshold] = useState(999999);
 
-  // ⭐ 新增：取貨方式
+  // ⭐ 新增取貨方式
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const [pickupType, setPickupType] = useState<"today" | "scheduled">("today");
   const [pickupDate, setPickupDate] = useState("");
