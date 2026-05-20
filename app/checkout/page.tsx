@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
   collection,
-  addDoc,
   getDocs,
   serverTimestamp,
   doc,
@@ -247,91 +246,136 @@ const orderNo = await runTransaction(db, async (t) => {
 // ⭐ 一次 transaction 處理全部商品
 await runTransaction(db, async (transaction) => {
 
-  // ⭐ 先檢查全部庫存
-  for (const item of cart) {
+  // =====================
+  // 先讀全部商品
+  // =====================
 
-    const productRef = doc(
-      db,
-      "products",
-      item.id
-    );
+  const productSnaps = await Promise.all(
 
-    const productSnap = await transaction.get(
-      productRef
-    );
+    cart.map(async (item) => {
 
-    if (!productSnap.exists()) {
+      const productRef = doc(
+        db,
+        "products",
+        item.id
+      );
+
+      const snap =
+        await transaction.get(productRef);
+
+      return {
+        ref: productRef,
+        snap,
+        item,
+      };
+
+    })
+  );
+
+  // =====================
+  // 檢查庫存
+  // =====================
+
+  for (const p of productSnaps) {
+
+    const data = p.snap.data()!;
+
+    if (!data) {
 
       throw new Error(
-        `${item.name} 商品不存在`
+        `${p.item.name} 商品不存在`
       );
     }
 
-    const productData = productSnap.data();
-
-    const currentStock =
-      productData.stock || 0;
-
-    // ⭐ 庫存不足
-    if (currentStock < item.qty) {
+    if (
+      (data.stock || 0) <
+      p.item.qty
+    ) {
 
       throw new Error(
-        `${item.name} 庫存不足，請重新選購`
+        `${p.item.name} 庫存不足`
       );
     }
   }
 
-  // ⭐ 全部商品都通過後
-  // ⭐ 才開始扣庫存
-  for (const item of cart) {
+  // =====================
+  // 扣庫存
+  // =====================
 
-    const productRef = doc(
-      db,
-      "products",
-      item.id
+  for (const p of productSnaps) {
+
+    const data = p.snap.data()!;
+
+    transaction.update(
+      p.ref,
+      {
+        stock:
+          data.stock - p.item.qty,
+      }
     );
-
-    const productSnap = await transaction.get(
-      productRef
-    );
-
-    const productData = productSnap.data();
-
-    const currentStock =
-      productData?.stock || 0;
-
-    transaction.update(productRef, {
-      stock: currentStock - item.qty,
-    });
   }
+
+  // =====================
+  // 建立訂單
+  // =====================
+
+  const orderRef = doc(
+    collection(db, "orders")
+  );
+
+  transaction.set(orderRef, {
+
+    orderNo,
+
+    payment: "cod",
+
+    deliveryType,
+
+    pickupType:
+      deliveryType === "pickup"
+        ? pickupType
+        : null,
+
+    pickupDate:
+      pickupType === "scheduled"
+        ? pickupDate
+        : null,
+
+    customer: {
+      name,
+      phone,
+      city,
+      district,
+      address: detail,
+      fullAddress,
+      zip,
+    },
+
+    items: cart,
+
+    subtotal,
+
+    shippingFee:
+      finalShipping,
+
+    total,
+
+    costTotal,
+
+    profit,
+
+    createdAt:
+      serverTimestamp(),
+
+    lineUserId:
+      lineUserId || null,
+
+    status: "pending",
+
+  });
+
 });
-      await addDoc(collection(db, "orders"), {
-        orderNo,
-        payment: "cod",
-        deliveryType,
-        pickupType: deliveryType === "pickup" ? pickupType : null,
-        pickupDate: pickupType === "scheduled" ? pickupDate : null,
-        
-        customer: {
-          name,
-          phone,
-          city,
-          district,
-          address: detail,
-          fullAddress,
-          zip,
-        },
-
-        items: cart,
-        subtotal,
-        shippingFee: finalShipping,
-        total,
-        costTotal,
-        profit,
-        createdAt: serverTimestamp(),
-        lineUserId: lineUserId || null,
-        status: "pending",
-      });
+      
       // 🔥 LINE 通知（關鍵）
 try {
   await fetch("/api/line", {
