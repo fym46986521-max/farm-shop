@@ -213,12 +213,23 @@ if (liff.isLoggedIn()) {
   style={{
   backgroundImage: "url('/images/farm-bg.jpg')",
   backgroundSize: "cover",
-  backgroundPosition: "top center",
+  backgroundPosition: "center",
 }}
 >
 
       {/* LOGO */}
-      <div className="h-[38vh]"></div>
+      <div className="flex justify-center pt-10 pb-6">
+
+  <img
+    src="/images/logo.jpg"
+    className="
+      w-[85%]
+      max-w-[420px]
+      drop-shadow-2xl
+    "
+  />
+
+</div>
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
