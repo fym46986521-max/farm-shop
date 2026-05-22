@@ -68,11 +68,8 @@ export default function CheckoutPage() {
     localStorage.getItem("lineUserId");
 
   if (!lineUserId) {
-
-    alert("請先從LINE進入");
-
-    router.push("/shop");
-  }
+  return;
+}
 
 }, []);
 

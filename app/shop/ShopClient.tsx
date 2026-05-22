@@ -292,8 +292,8 @@ if (liff.isLoggedIn()) {
 if (!liff.isLoggedIn()) {
 
   liff.login({
-    redirectUri: "https://judoufarm.com/shop?checkout=1",
-  });
+  redirectUri: "https://judoufarm.com/checkout",
+});
 
   return;
 }
