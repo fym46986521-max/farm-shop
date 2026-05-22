@@ -209,7 +209,7 @@ if (liff.isLoggedIn()) {
   return (
     
     <div
-  className="min-h-screen bg-[#f7f5ef]"
+  className="min-h-screen bg-[#f7f4ea] border border-[#e8e2d3]"
 >
 
       {/* LOGO */}
@@ -232,7 +232,7 @@ if (liff.isLoggedIn()) {
 <div className="fixed bottom-5 right-5 z-50">
   <button
     onClick={() => setOpenCart(true)}
-    className="bg-green-600 text-white rounded-full shadow-lg px-4 py-3 flex flex-col items-center text-xs"
+    className="bg-[#5cab63] text-white rounded-full shadow-2x1 border-4 border-white/70 px-4 py-3 flex flex-col items-center text-xs"
   >
     <span className="text-lg">🛒</span>
     <span>${total}</span>
