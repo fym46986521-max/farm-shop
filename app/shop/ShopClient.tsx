@@ -216,7 +216,7 @@ if (liff.isLoggedIn()) {
 >
 
       {/* LOGO */}
-      <div className="h-45"></div>
+      <div className="h-35"></div>
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
