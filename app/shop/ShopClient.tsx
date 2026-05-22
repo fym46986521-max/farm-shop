@@ -209,27 +209,24 @@ if (liff.isLoggedIn()) {
   return (
     
     <div
-  className="min-h-screen p-3 bg-cover bg-center"
-  style={{
-  backgroundImage: "url('/images/farm-bg.jpg')",
-  backgroundSize: "cover",
-  backgroundPosition: "center",
-}}
+  className="min-h-screen bg-[#f7f5ef]"
 >
 
       {/* LOGO */}
-      <div className="flex justify-center pt-10 pb-6">
+      <div className="w-full">
 
   <img
     src="/images/logo.jpg"
     className="
-      w-[85%]
-      max-w-[420px]
-      drop-shadow-2xl
+      w-full
+      object-cover
+      block
     "
   />
 
 </div>
+
+
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
