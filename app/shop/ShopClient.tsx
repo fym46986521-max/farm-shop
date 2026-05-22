@@ -216,15 +216,7 @@ if (liff.isLoggedIn()) {
 >
 
       {/* LOGO */}
-      <div className="text-center mb-4">
-        <h1 className="text-3xl md:text-4xl font-black text-red-700 drop-shadow">
-          九斗合作農場
-        </h1>
-        <p className="text-sm text-green-900 font-semibold mt-1">
-          新鮮直送｜健康安心｜在地農產
-        </p>
-        
-      </div>
+      <div className="h-45"></div>
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
