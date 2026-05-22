@@ -209,14 +209,14 @@ if (liff.isLoggedIn()) {
   return (
     
     <div
-  className="min-h-screen p-3 bg-cover bg-center bg-fixed"
+  className="min-h-screen p-3 bg-cover bg-center"
   style={{
     backgroundImage: "url('/images/farm-bg.jpg')",
   }}
 >
 
       {/* LOGO */}
-      <div className="h-35"></div>
+      <div className="h-[38vh]"></div>
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
