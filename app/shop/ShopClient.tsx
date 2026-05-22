@@ -211,8 +211,10 @@ if (liff.isLoggedIn()) {
     <div
   className="min-h-screen p-3 bg-cover bg-center"
   style={{
-    backgroundImage: "url('/images/farm-bg.jpg')",
-  }}
+  backgroundImage: "url('/images/farm-bg.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "top center",
+}}
 >
 
       {/* LOGO */}
