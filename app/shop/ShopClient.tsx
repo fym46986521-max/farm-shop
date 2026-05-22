@@ -209,12 +209,11 @@ if (liff.isLoggedIn()) {
   return (
     
     <div
-      className="min-h-screen p-3"
-      style={{
-        background:
-          "linear-gradient(to bottom, #4fc3f7 0%, #81d4fa 30%, #c8e6c9 60%, #66bb6a 100%)",
-      }}
-    >
+  className="min-h-screen p-3 bg-cover bg-center bg-fixed"
+  style={{
+    backgroundImage: "url('/images/farm-bg.jpg')",
+  }}
+>
 
       {/* LOGO */}
       <div className="text-center mb-4">
@@ -326,7 +325,14 @@ if (!liff.isLoggedIn()) {
 )}
     
       {/* 商品 */}
-      <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-lg">
+      <div className="
+  bg-white/75
+  backdrop-blur-lg
+  p-4
+  rounded-[32px]
+  shadow-2xl
+  border border-white/40
+">
 
         <div className="sticky top-0 z-40 pb-2">
           <h1 className="text-lg font-bold mb-2">商品商城</h1>
@@ -348,7 +354,16 @@ if (!liff.isLoggedIn()) {
 
         <div className="grid grid-cols-2 gap-3 mt-3">
           {filteredProducts.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl shadow-md p-2 border border-green-100">
+            <div key={item.id} className="
+  bg-white/90
+  backdrop-blur-md
+  rounded-3xl
+  shadow-xl
+  p-3
+  border border-white/50
+  hover:scale-[1.02]
+  transition
+">
 
               <div className="relative w-full h-[220px] flex items-center justify-center bg-gradient-to-b from-white to-green-50 rounded">
 
