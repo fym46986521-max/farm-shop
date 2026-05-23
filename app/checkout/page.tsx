@@ -1,4 +1,5 @@
 "use client";
+import { zipMap } from "@/lib/zipMap";
 import liff from "@line/liff";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
@@ -171,17 +172,7 @@ export default function CheckoutPage() {
     updateCart(newCart);
   };
 
-  const getZip = async (city: string, district: string, detail: string) => {
-    try {
-      const res = await fetch(
-        `https://zip5.5432.tw/zip5json.py?adrs=${city}${district}${detail}`
-      );
-      const data = await res.json();
-      return (data.zipcode || "000").slice(0, 3);
-    } catch {
-      return "000";
-    }
-  };
+ 
 
   const handleCheckout = async () => {
 
@@ -214,9 +205,9 @@ export default function CheckoutPage() {
 
       const fullAddress = `${city}${district}${detail}`;
       const zip =
-        deliveryType === "delivery"
-          ? await getZip(city, district, detail)
-          : "";
+  deliveryType === "delivery"
+    ? zipMap[`${city}${district}`] || ""
+    : "";
 
       const now = new Date();
       const y = now.getFullYear();
