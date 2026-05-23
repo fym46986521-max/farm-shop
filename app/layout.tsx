@@ -12,9 +12,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+
 export const metadata: Metadata = {
   title: "九斗合作農場",
-  description: "九斗合作農場｜有機蔬菜直送",
+  description: "有機蔬菜・友善耕作・產地直送",
+
+  openGraph: {
+    title: "九斗合作農場",
+    description: "有機蔬菜・友善耕作・產地直送",
+    siteName: "九斗合作農場",
+    locale: "zh_TW",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "九斗合作農場",
+    description: "有機蔬菜・友善耕作・產地直送",
+  },
 };
 
 export default function RootLayout({
