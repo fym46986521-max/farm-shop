@@ -264,15 +264,16 @@ if (liff.isLoggedIn()) {
             <img src={item.image} className="w-14 h-14 rounded object-cover" />
             <div className="flex-1 text-sm">
               <p className="font-bold">{item.name}</p>
-              <p>${item.price}</p>
+              <p>單價:${item.price}</p>
 
               <div className="flex gap-2 items-center">
+                <p>數量:</p>
                 <button onClick={() => changeQty(item.id, -1)}>－</button>
                 <span>{item.qty}</span>
                 <button onClick={() => changeQty(item.id, 1)}>＋</button>
               </div>
 
-              <p>${item.price * item.qty}</p>
+              <p>小計:${item.price * item.qty}</p>
               <button onClick={() => removeItem(item.id)} className="text-red-500 text-xs">
                 刪除
               </button>
