@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
-  title: "九斗合作農場",
+  title: "九斗合作農場官方商城",
   description: "有機蔬菜・友善耕作・產地直送",
 
   openGraph: {
