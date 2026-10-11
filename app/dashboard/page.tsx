@@ -349,8 +349,16 @@ try {
   if (snap.exists()) {
     setPackaging(snap.data() as any);
   }
-} catch (e) {
-  console.error("Firestore read error:", e);
+} catch (error: any) {
+  console.error("儲存捐贈紀錄失敗：", error);
+
+  alert(
+    `儲存失敗\n錯誤代碼：${error?.code || "未知"}\n錯誤訊息：${
+      error?.message || "請查看瀏覽器 Console"
+    }`
+  );
+} finally {
+  setSavingDonationRecord(false);
 }
   };
 
