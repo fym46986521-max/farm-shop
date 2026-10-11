@@ -749,7 +749,7 @@ if (!liff.isLoggedIn()) {
         </div>
         
         {/* 認捐區 */}
-        <div className="mt-6 rounded-2xl border border-green-200 p-5">
+        <div className="mt-6 w-full min-w-0 rounded-2xl border border-green-200 p-5">
 
           <h2 className="text-xl font-black text-gray-800 mb-3">
             🥬 加入一菜一心認捐行動
@@ -826,7 +826,7 @@ if (!liff.isLoggedIn()) {
         </div>
 
         {/* 公益透明化 */}
-        <div className="mt-6 rounded-2xl bg-[#f7f4ea] p-5">
+        <div className="mt-6 mx-4 rounded-3xl bg-[#f7f4ea] p-6">
 
           <h2 className="text-lg font-black text-gray-800 mb-3">
             📷 每一份愛，都有紀錄
