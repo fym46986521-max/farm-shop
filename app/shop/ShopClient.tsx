@@ -39,6 +39,14 @@ function formatDonationDate(
     hour12: false,
   }).format(date);
 }
+const weeklyDonationRecords: WeeklyDonationRecord[] = [];
+type WeeklyDonationRecord = {
+  id: string;
+  donationDate: string;
+  organizationName: string;
+  donationImageUrl: string;
+  receiptImageUrl: string;
+};
 export default function ShopClient() {
   const router = useRouter();
   
@@ -63,7 +71,11 @@ export default function ShopClient() {
 
 }, []);
   const [openCart, setOpenCart] = useState(false);
-
+const [selectedDonationImage, setSelectedDonationImage] =
+  useState<{
+    title: string;
+    imageUrl: string;
+  } | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [qty, setQty] = useState(1);
 
@@ -81,8 +93,7 @@ const [showDonationRecords, setShowDonationRecords] = useState(false);
 
 // 公益明細彈窗分頁
 const [donationRecordsTab, setDonationRecordsTab] = useState<
-  "records" | "ranking"
->("records");
+  "records" | "weekly">("records");
 // 認捐人資料
 const [donorName, setDonorName] = useState("");
 const [donorPhone, setDonorPhone] = useState("");
@@ -1386,16 +1397,16 @@ if (!liff.isLoggedIn()) {
         </button>
 
         <button
-          type="button"
-          onClick={() => setDonationRecordsTab("ranking")}
-          className={`rounded-xl px-3 py-3 font-bold transition ${
-            donationRecordsTab === "ranking"
-              ? "bg-green-700 text-white shadow"
-              : "bg-white text-gray-700 hover:bg-green-50"
-          }`}
-        >
-          🏆 愛心捐款排名
-        </button>
+  type="button"
+  onClick={() => setDonationRecordsTab("weekly")}
+  className={`rounded-xl px-4 py-4 text-base font-bold transition ${
+    donationRecordsTab === "weekly"
+      ? "bg-green-700 text-white shadow-md"
+      : "bg-white text-gray-700 hover:bg-green-50"
+  }`}
+>
+  📸 每週捐贈紀錄
+</button>
       </div>
 
       {/* 內容區域 */}
@@ -1644,40 +1655,6 @@ if (!liff.isLoggedIn()) {
                       ).toLocaleString()}
                     </p>
                   </div>
-
-                  {/* 收據 */}
-                  <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
-
-                    <p className="font-bold text-gray-800">
-                      🧾 捐款收據
-                    </p>
-
-                    {record.receiptUrl ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedDonationReceipt(
-                            record.receiptUrl
-                          )
-                        }
-                        className="mt-3 w-full rounded-xl bg-green-700 px-4 py-3 font-bold text-white transition hover:bg-green-800"
-                      >
-                        📷 查看捐款收據
-                      </button>
-                    ) : (
-                      <div className="mt-2 rounded-lg bg-amber-50 p-3">
-                        <p className="font-bold text-amber-800">
-                          ⏳ 收據整理中
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-amber-700">
-                          此筆紀錄目前尚未提供收據圖片。
-                        </p>
-                      </div>
-                    )}
-
-                  </div>
-
                 </div>
               ))}
 
@@ -1750,35 +1727,88 @@ if (!liff.isLoggedIn()) {
         {/* ========================= */}
         {/* 愛心捐款排名 */}
         {/* ========================= */}
-        {donationRecordsTab === "ranking" && (
-          <div>
+        {donationRecordsTab === "weekly" && (
+  <div className="space-y-5">
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900">
+        📸 每週捐贈紀錄
+      </h2>
 
-            <h3 className="mb-3 text-xl font-black text-gray-900">
-              🏆 愛心捐款排行榜
-            </h3>
+      <p className="mt-2 text-base leading-7 text-gray-600">
+        記錄每一次實際捐贈，讓每一份善意都能被看見。
+      </p>
+    </div>
 
-            <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
+    {weeklyDonationRecords.length === 0 ? (
+      <div className="rounded-2xl border border-dashed border-green-200 bg-green-50 px-5 py-12 text-center">
+        <div className="text-5xl">💚</div>
 
-              <p className="font-bold text-gray-800">
-                感謝每一位支持一菜一心的朋友
-              </p>
+        <h3 className="mt-4 text-xl font-bold text-gray-800">
+          目前尚無捐贈紀錄
+        </h3>
 
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                排行榜將依捐款人累計認捐金額，由高至低排列。
-              </p>
-
-              <p className="mt-3 text-sm font-bold text-orange-700">
-                排名資料需串接實際捐款統計後顯示。
-              </p>
-
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          農場將於完成每週捐贈後，陸續更新捐贈照片與收據。
+        </p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 gap-5">
+        {weeklyDonationRecords.map((record) => (
+          <article
+            key={record.id}
+            className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm"
+          >
+            <div className="text-sm font-medium text-green-700">
+              📅 捐贈日期
             </div>
 
-            <p className="mt-4 text-xs leading-6 text-gray-500">
-              為保護捐款人的個人資料，排行榜應以遮蔽姓名的方式顯示。
-            </p>
+            <div className="mt-1 text-xl font-bold text-gray-900">
+              {record.donationDate}
+            </div>
 
-          </div>
-        )}
+            <div className="mt-4 text-sm font-medium text-gray-500">
+              🏢 受捐贈機構
+            </div>
+
+            <div className="mt-1 text-lg font-bold text-gray-900">
+              {record.organizationName}
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={!record.donationImageUrl}
+                onClick={() =>
+                  setSelectedDonationImage({
+                    title: "📷 捐贈照片",
+                    imageUrl: record.donationImageUrl,
+                  })
+                }
+                className="w-full rounded-xl bg-green-700 px-4 py-4 font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                📷 查看捐贈照片
+              </button>
+
+              <button
+                type="button"
+                disabled={!record.receiptImageUrl}
+                onClick={() =>
+                  setSelectedDonationImage({
+                    title: "🧾 捐贈收據",
+                    imageUrl: record.receiptImageUrl,
+                  })
+                }
+                className="w-full rounded-xl border border-green-200 bg-green-50 px-4 py-4 font-bold text-green-800 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+              >
+                🧾 查看捐贈收據
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
       </div>
 
@@ -1985,6 +2015,40 @@ if (!liff.isLoggedIn()) {
           </div>
         </div>
       )}
+      {selectedDonationImage && (
+  <div
+    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4"
+    onClick={() => setSelectedDonationImage(null)}
+  >
+    <div
+      className="relative w-full max-w-3xl rounded-2xl bg-white p-4 shadow-2xl"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-xl font-bold text-gray-900">
+          {selectedDonationImage.title}
+        </h3>
+
+        <button
+          type="button"
+          onClick={() => setSelectedDonationImage(null)}
+          className="rounded-full bg-gray-100 px-4 py-2 text-lg font-bold text-gray-700 hover:bg-gray-200"
+          aria-label="關閉圖片"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="flex max-h-[75vh] items-center justify-center overflow-auto">
+        <img
+          src={selectedDonationImage.imageUrl}
+          alt={selectedDonationImage.title}
+          className="max-h-[75vh] max-w-full rounded-lg object-contain"
+        />
+      </div>
+    </div>
+  </div>
+)}
     </div>
 );
 }
