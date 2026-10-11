@@ -163,10 +163,15 @@ const fetchDonationOrganizations = async () => {
     );
 
     setDonationOrganizations(list);
-  } catch (error) {
-    console.error("讀取受捐助機構失敗：", error);
-    alert("讀取受捐助機構失敗，請檢查 Firebase 權限。");
-  }
+  } catch (error: any) {
+  console.error("讀取受捐機構失敗：", error);
+
+  alert(
+    `讀取受捐機構失敗：${error?.code || "未知錯誤"}\n${
+      error?.message || "請查看瀏覽器 Console"
+    }`
+  );
+}
 };
 
 // 讀取每週捐贈紀錄
