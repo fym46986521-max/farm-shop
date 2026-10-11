@@ -518,10 +518,10 @@ if (!liff.isLoggedIn()) {
             </p>
           </div>
         {/* 一菜一心 × ESG 永續公益理念 */}
-<section className="mt-8">
+<section className="mt-8 w-full min-w-0 self-stretch">
 
   {/* 標題 */}
-  <div className="text-center mb-6">
+  <div className="mb-6 w-full text-center">
 
     <span className="inline-block rounded-full bg-green-100 px-4 py-2 text-sm font-bold tracking-widest text-green-800">
       SUSTAINABLE CHARITY
@@ -540,7 +540,7 @@ if (!liff.isLoggedIn()) {
   </div>
 
   {/* ESG 理念介紹 */}
-  <div className="mb-5 rounded-2xl bg-gradient-to-br from-green-50 to-[#f7f4ea] p-5">
+  <div className="mb-5 w-full min-w-0 rounded-2xl bg-gradient-to-br from-green-50 to-[#f7f4ea] p-5 sm:p-6">
 
     <p className="text-sm leading-8 text-gray-700">
       我們相信，真正的公益不只是付出，更是讓善意持續發生。
@@ -552,7 +552,7 @@ if (!liff.isLoggedIn()) {
   </div>
 
   {/* E：環境永續 */}
-  <div className="mb-4 overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm">
+  <div className="mb-4 w-full min-w-0 overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm">
 
     <div className="bg-gradient-to-r from-green-700 to-green-500 p-4 text-white">
 
@@ -591,7 +591,7 @@ if (!liff.isLoggedIn()) {
   </div>
 
   {/* S：社會關懷 */}
-  <div className="mb-4 overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+  <div className="mb-4 w-full min-w-0 overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm">
 
     <div className="bg-gradient-to-r from-emerald-700 to-teal-600 p-4 text-white">
 
@@ -631,7 +631,7 @@ if (!liff.isLoggedIn()) {
   </div>
 
   {/* G：公益透明 */}
-  <div className="overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm">
+  <div className="mb-4 w-full min-w-0 overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm">
 
     <div className="bg-gradient-to-r from-amber-700 to-yellow-600 p-4 text-white">
 
@@ -723,7 +723,7 @@ if (!liff.isLoggedIn()) {
   </div>
 
   {/* ESG 收尾 */}
-  <div className="mt-5 rounded-2xl bg-gradient-to-br from-green-800 to-green-600 p-6 text-center text-white shadow-lg">
+  <div className="mt-5 w-full min-w-0 rounded-2xl bg-gradient-to-br from-green-800 to-green-600 p-6 text-center text-white shadow-lg">
 
     <p className="text-xs font-bold tracking-[0.2em] text-green-100">
       ONE VEGETABLE · ONE HEART
