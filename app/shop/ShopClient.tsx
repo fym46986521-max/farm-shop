@@ -232,7 +232,7 @@ if (liff.isLoggedIn()) {
   return (
     
     <div
-  className="min-h-screen bg-[#f7f4ea] border border-[#e8e2d3]"
+  className="min-h-screen bg-[#f7f4ea] border border-[#e8e2d3] text-gray-900"
 >
 
       {/* LOGO */}
@@ -296,7 +296,7 @@ if (liff.isLoggedIn()) {
     onClick={() => setOpenCart(false)}   // ⭐ 點背景關閉
   >
     <div
-      className="w-80 bg-white h-full p-4 flex flex-col shadow-xl"
+      className="w-80 bg-white text-black h-full p-4 flex flex-col shadow-xl"
       onClick={(e) => e.stopPropagation()} // ⭐ 防止點裡面關閉
     >
 
