@@ -34,7 +34,11 @@ export default function ShopClient() {
   const [qty, setQty] = useState(1);
 
   const [category, setCategory] = useState("全部");
-  const [showEmptyAlert, setShowEmptyAlert] = useState(false);
+
+// 主分頁：商品商城 / 一菜一心公益計畫
+const [activeTab, setActiveTab] = useState<"shop" | "donation">("shop");
+const [donationUnits, setDonationUnits] = useState(1);
+const [showEmptyAlert, setShowEmptyAlert] = useState(false);
 const [lineUserId, setLineUserId] = useState("");
 
 
@@ -226,7 +230,34 @@ if (liff.isLoggedIn()) {
 
 </div>
 
+{/* 主分頁：商品商城 / 一菜一心公益計畫 */}
+<div className="sticky top-0 z-40 bg-[#f7f4ea] px-3 py-3">
+  <div className="grid grid-cols-2 gap-3 max-w-3xl mx-auto">
 
+    <button
+      onClick={() => setActiveTab("shop")}
+      className={`py-3 px-2 rounded-xl font-bold text-base transition ${
+        activeTab === "shop"
+          ? "bg-green-600 text-white shadow-md"
+          : "bg-white text-green-700 border border-green-200"
+      }`}
+    >
+      🛒 商品商城
+    </button>
+
+    <button
+      onClick={() => setActiveTab("donation")}
+      className={`py-3 px-2 rounded-xl font-bold text-base transition ${
+        activeTab === "donation"
+          ? "bg-orange-500 text-white shadow-md"
+          : "bg-white text-orange-600 border border-orange-200"
+      }`}
+    >
+      💚 一菜一心公益計畫
+    </button>
+
+  </div>
+</div>
 
       {/* 🛒 浮動購物車 */}
 <div className="fixed bottom-5 right-5 z-50">
@@ -327,8 +358,9 @@ if (!liff.isLoggedIn()) {
     </div>
 )}
     
-      {/* 商品 */}
-      <div className="
+      {/* 商品商城分頁內容 */}
+{activeTab === "shop" && (
+  <div className="
   bg-white/75
   backdrop-blur-lg
   p-4
@@ -336,6 +368,7 @@ if (!liff.isLoggedIn()) {
   shadow-2xl
   border border-white/40
 ">
+
 
         <div className="sticky top-0 z-40 pb-2">
           <h1 className="text-lg font-bold mb-2">商品商城</h1>
@@ -413,7 +446,180 @@ if (!liff.isLoggedIn()) {
           ))}
         </div>
       </div>
+      )}
+      {/* 一菜一心公益計畫分頁內容 */}
+{activeTab === "donation" && (
+  <div className="px-4 pb-10">
 
+    <div className="max-w-3xl mx-auto overflow-hidden rounded-3xl bg-white shadow-xl">
+
+      {/* 公益主視覺 */}
+      <div className="bg-gradient-to-br from-green-700 to-green-500 px-6 py-10 text-center text-white">
+
+        <p className="text-sm tracking-[0.3em] mb-3">
+          JIUDOU FARM CHARITY
+        </p>
+
+        <h1 className="text-3xl font-black mb-4">
+          一菜一心
+        </h1>
+
+        <p className="text-lg font-bold">
+          讓每一份新鮮蔬菜，都成為一份溫暖的關懷
+        </p>
+
+      </div>
+
+      <div className="p-6">
+
+        {/* 公益理念 */}
+        <h2 className="text-xl font-black text-green-800 mb-4">
+          💚 以慈悲為本，讓愛走進方舟
+        </h2>
+
+        <p className="text-gray-700 leading-8">
+          九斗合作農場發起「一菜一心公益計畫」，希望透過新鮮有機蔬菜，
+          將來自土地的關懷送進方舟啟智教養院。
+          <br /><br />
+          「一菜」代表一份實際的關懷，
+          「一心」代表一份真誠的慈悲。
+          我們希望集結每一位認捐者的力量，
+          讓愛不只停留在心裡，而是真正送到需要的人手中。
+        </p>
+
+        {/* 每週公益目標 */}
+        <div className="grid grid-cols-2 gap-3 mt-6">
+
+          <div className="bg-green-50 rounded-2xl p-4 text-center">
+            <p className="text-sm text-gray-600">
+              每週配送
+            </p>
+
+            <p className="text-3xl font-black text-green-700 mt-2">
+              50 公斤
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              新鮮有機蔬菜
+            </p>
+          </div>
+
+          <div className="bg-orange-50 rounded-2xl p-4 text-center">
+            <p className="text-sm text-gray-600">
+              每週認捐目標
+            </p>
+
+            <p className="text-3xl font-black text-orange-600 mt-2">
+              NT$5,000
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              新臺幣
+            </p>
+          </div>
+
+        </div>
+
+        {/* 認捐區 */}
+        <div className="mt-6 rounded-2xl border border-green-200 p-5">
+
+          <h2 className="text-xl font-black text-gray-800 mb-3">
+            🥬 加入一菜一心認捐行動
+          </h2>
+
+          <p className="text-gray-600 leading-7">
+            每認捐一單位為 NT$100。
+            每週目標為 NT$5,000，讓我們一起集結善意，
+            支持每週 50 公斤新鮮蔬菜的公益配送。
+          </p>
+
+          <div className="mt-5 rounded-xl bg-gray-50 p-4">
+
+            <p className="font-bold text-gray-800">
+              認捐單位
+            </p>
+
+            <p className="text-sm text-gray-500 mt-1">
+              每單位 NT$100
+            </p>
+
+            {/* 認捐單位加減 */}
+            <div className="flex items-center justify-center gap-6 mt-4">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setDonationUnits((n) => Math.max(1, n - 1))
+                }
+                className="w-12 h-12 rounded-full border bg-white text-2xl font-bold"
+              >
+                −
+              </button>
+
+              <span className="text-3xl font-black text-green-700">
+                {donationUnits}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setDonationUnits((n) => n + 1)}
+                className="w-12 h-12 rounded-full border bg-white text-2xl font-bold"
+              >
+                +
+              </button>
+
+            </div>
+
+            {/* 認捐金額 */}
+            <p className="text-center mt-4 text-gray-700">
+              認捐金額：
+              <span className="text-2xl font-black text-orange-600">
+                NT${donationUnits * 100}
+              </span>
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                alert(
+                  "感謝您支持一菜一心公益計畫！目前認捐功能尚未正式開放，請先聯絡九斗合作農場。"
+                );
+              }}
+              className="w-full mt-5 py-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-lg"
+            >
+              我要支持一菜一心 💚
+            </button>
+
+            <p className="text-xs text-gray-500 leading-6 mt-3">
+              ※ 目前認捐按鈕尚未串接正式認捐資料庫或付款功能。
+            </p>
+
+          </div>
+        </div>
+
+        {/* 公益透明化 */}
+        <div className="mt-6 rounded-2xl bg-[#f7f4ea] p-5">
+
+          <h2 className="text-lg font-black text-gray-800 mb-3">
+            📷 每一份愛，都有紀錄
+          </h2>
+
+          <p className="text-gray-700 leading-7">
+            蔬菜送達方舟啟智教養院後，
+            九斗合作農場將開立相關收據並拍照存證，
+            讓每一份善意都能留下紀錄。
+          </p>
+
+        </div>
+
+        <p className="text-center text-sm text-gray-500 mt-8">
+          九斗合作農場｜一菜一心公益計畫
+        </p>
+
+      </div>
+    </div>
+  </div>
+)}
       {/* 空購物車提示 */}
       {showEmptyAlert && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -444,6 +650,7 @@ if (!liff.isLoggedIn()) {
     shadow
   "
 >
+
   ✕
 </button>
           <div
@@ -579,5 +786,5 @@ if (!liff.isLoggedIn()) {
         </div>
       )}
     </div>
-  );
+);
 }
