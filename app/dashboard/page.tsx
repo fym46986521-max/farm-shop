@@ -85,6 +85,19 @@ export default function DashboardPage() {
   const [profit, setProfit] = useState(0);
   const [showOneHeart, setShowOneHeart] = useState(false);
   const [oneHeartTab, setOneHeartTab] = useState<"stats" | "records">("stats");
+  // 一菜一心：受捐助機構
+const [donationOrganizations, setDonationOrganizations] = useState<any[]>([]);
+const [selectedOrganization, setSelectedOrganization] = useState("");
+const [newOrganization, setNewOrganization] = useState("");
+
+// 一菜一心：每週捐贈紀錄
+const [weeklyDonationRecords, setWeeklyDonationRecords] = useState<any[]>([]);
+const [donationDate, setDonationDate] = useState(
+  new Date().toLocaleDateString("en-CA")
+);
+const [donationImageFile, setDonationImageFile] = useState<File | null>(null);
+const [receiptImageFile, setReceiptImageFile] = useState<File | null>(null);
+const [savingDonationRecord, setSavingDonationRecord] = useState(false);
   const fetchOrders = async () => {
   try {
     const res = await fetch("/api/orders");
@@ -113,7 +126,12 @@ export default function DashboardPage() {
       router.push("/admin/login");
     }
   }, []);
-  
+  useEffect(() => {
+  if (!showOneHeart) return;
+
+  fetchDonationOrganizations();
+  fetchWeeklyDonationRecords();
+}, [showOneHeart]);
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
     const list: any[] = [];
@@ -125,7 +143,193 @@ export default function DashboardPage() {
     list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     setProducts(list);
   };
+  // 讀取受捐助機構
+const fetchDonationOrganizations = async () => {
+  try {
+    const snapshot = await getDocs(
+      collection(db, "donationOrganizations")
+    );
 
+    const list = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    list.sort((a: any, b: any) =>
+      String(a.name || "").localeCompare(
+        String(b.name || ""),
+        "zh-TW"
+      )
+    );
+
+    setDonationOrganizations(list);
+  } catch (error) {
+    console.error("讀取受捐助機構失敗：", error);
+    alert("讀取受捐助機構失敗，請檢查 Firebase 權限。");
+  }
+};
+
+// 讀取每週捐贈紀錄
+const fetchWeeklyDonationRecords = async () => {
+  try {
+    const snapshot = await getDocs(
+      collection(db, "weeklyDonationRecords")
+    );
+
+    const list = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    list.sort((a: any, b: any) =>
+      String(b.donationDate || "").localeCompare(
+        String(a.donationDate || "")
+      )
+    );
+
+    setWeeklyDonationRecords(list);
+  } catch (error) {
+    console.error("讀取每週捐贈紀錄失敗：", error);
+    alert("讀取捐贈紀錄失敗，請檢查 Firebase 權限。");
+  }
+};
+// 新增受捐助機構
+const handleAddDonationOrganization = async () => {
+  const organizationName = newOrganization.trim();
+
+  if (!organizationName) {
+    alert("請輸入受捐助機構名稱");
+    return;
+  }
+
+  const alreadyExists = donationOrganizations.some(
+    (item: any) =>
+      String(item.name || "").trim() === organizationName
+  );
+
+  if (alreadyExists) {
+    alert("這個受捐助機構已經存在");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "donationOrganizations"), {
+      name: organizationName,
+      createdAt: Timestamp.now(),
+    });
+
+    setNewOrganization("");
+    await fetchDonationOrganizations();
+
+    setSelectedOrganization(organizationName);
+
+    alert("受捐助機構新增成功！");
+  } catch (error) {
+    console.error("新增受捐助機構失敗：", error);
+    alert("新增失敗，請確認管理員權限及 Firebase 設定。");
+  }
+};
+// 上傳捐贈照片或收據
+const uploadDonationImage = async (
+  file: File,
+  folder: string
+): Promise<string> => {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("只能上傳圖片檔案");
+  }
+
+  // 限制單張圖片 10 MB
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("圖片大小不可超過 10 MB");
+  }
+
+  const safeName = file.name.replace(/[^\w.-]/g, "_");
+
+  const fileRef = ref(
+    storage,
+    `one-heart/${folder}/${Date.now()}_${safeName}`
+  );
+
+  await uploadBytes(fileRef, file);
+
+  return await getDownloadURL(fileRef);
+};
+// 儲存每週捐贈紀錄
+const handleSaveWeeklyDonation = async () => {
+  if (!donationDate) {
+    alert("請選擇捐贈日期");
+    return;
+  }
+
+  if (!selectedOrganization) {
+    alert("請選擇受捐助機構");
+    return;
+  }
+
+  if (!donationImageFile) {
+    alert("請上傳實際捐贈照片");
+    return;
+  }
+
+  if (!receiptImageFile) {
+    alert("請上傳捐贈收據");
+    return;
+  }
+
+  setSavingDonationRecord(true);
+
+  try {
+    const organization = donationOrganizations.find(
+      (item: any) => item.name === selectedOrganization
+    );
+
+    if (!organization) {
+      throw new Error("找不到所選的受捐助機構，請重新選擇");
+    }
+
+    // 上傳實際捐贈照片
+    const donationImageUrl = await uploadDonationImage(
+      donationImageFile,
+      "donation-photos"
+    );
+
+    // 上傳捐贈收據
+    const receiptImageUrl = await uploadDonationImage(
+      receiptImageFile,
+      "receipts"
+    );
+
+    // 儲存紀錄至 Firestore
+    await addDoc(collection(db, "weeklyDonationRecords"), {
+      donationDate,
+      organizationId: organization.id,
+      organizationName: organization.name,
+      donationImageUrl,
+      receiptImageUrl,
+      createdAt: Timestamp.now(),
+    });
+
+    // 清空表單
+    setDonationDate(new Date().toLocaleDateString("en-CA"));
+    setSelectedOrganization("");
+    setDonationImageFile(null);
+    setReceiptImageFile(null);
+
+    await fetchWeeklyDonationRecords();
+
+    alert("每週捐贈紀錄儲存成功！");
+  } catch (error) {
+    console.error("儲存捐贈紀錄失敗：", error);
+
+    alert(
+      error instanceof Error
+        ? `儲存失敗：${error.message}`
+        : "儲存失敗，請檢查 Firebase 設定。"
+    );
+  } finally {
+    setSavingDonationRecord(false);
+  }
+};
   useEffect(() => {
   fetchProducts();
   fetchOrders();
@@ -892,24 +1096,60 @@ if (detailFiles.length > 0) {
           受捐助機構
         </label>
         <div className="flex gap-2">
-          <select className="w-full rounded border p-2">
-            <option value="">請選擇機構</option>
-          </select>
+          <select
+  value={selectedOrganization}
+  onChange={(e) => setSelectedOrganization(e.target.value)}
+  className="w-full rounded border p-2"
+>
+  <option value="">請選擇機構</option>
+
+  {donationOrganizations.map((organization: any) => (
+    <option key={organization.id} value={organization.name}>
+      {organization.name}
+    </option>
+  ))}
+</select>
 
           <button
-            type="button"
-            onClick={() => {
-              const organization = window.prompt("請輸入新的受捐助機構名稱");
-              if (organization?.trim()) {
-                alert(
-                  `已輸入機構名稱：${organization.trim()}。下一步將接上 Firebase 儲存。`
-                );
-              }
-            }}
-            className="shrink-0 rounded bg-green-600 px-4 py-2 text-white"
-          >
-            ＋新增
-          </button>
+  type="button"
+  onClick={async () => {
+    const organization = window.prompt(
+      "請輸入新的受捐助機構名稱"
+    );
+
+    if (!organization?.trim()) return;
+
+    setNewOrganization(organization.trim());
+
+    const alreadyExists = donationOrganizations.some(
+      (item: any) =>
+        String(item.name || "").trim() === organization.trim()
+    );
+
+    if (alreadyExists) {
+      alert("這個受捐助機構已經存在");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "donationOrganizations"), {
+        name: organization.trim(),
+        createdAt: Timestamp.now(),
+      });
+
+      await fetchDonationOrganizations();
+      setSelectedOrganization(organization.trim());
+
+      alert("受捐助機構新增成功！");
+    } catch (error) {
+      console.error(error);
+      alert("新增失敗，請檢查 Firebase 權限。");
+    }
+  }}
+  className="shrink-0 rounded bg-green-600 px-4 py-2 text-white"
+>
+  ＋新增
+</button>
         </div>
       </div>
 
@@ -937,14 +1177,13 @@ if (detailFiles.length > 0) {
     </div>
 
     <button
-      type="button"
-      onClick={() => {
-        alert("下一步將完成 Firebase 儲存功能。");
-      }}
-      className="mt-6 rounded bg-green-600 px-6 py-3 font-bold text-white"
-    >
-      儲存捐贈紀錄
-    </button>
+  type="button"
+  onClick={handleSaveWeeklyDonation}
+  disabled={savingDonationRecord}
+  className="mt-6 rounded bg-green-600 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {savingDonationRecord ? "正在儲存..." : "儲存捐贈紀錄"}
+</button>
   </div>
 )}
 
