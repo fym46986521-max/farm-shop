@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   FieldValue,
   Timestamp,
-  type Query,
 } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 
@@ -11,13 +10,19 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
 
-// GET：讀取公益捐款明細
+// GET：取得公益捐款明細
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    const keyword = (searchParams.get("keyword") || "").trim();
-    const searchType = searchParams.get("searchType") || "name";
+    const keyword = (
+      searchParams.get("keyword") || ""
+    ).trim();
+
+    const searchType =
+      searchParams.get("searchType") === "phone"
+        ? "phone"
+        : "name";
 
     const page = Number(searchParams.get("page") || "1");
 
@@ -27,133 +32,126 @@ export async function GET(req: Request) {
       page > 100000
     ) {
       return NextResponse.json(
-        { error: "頁碼不正確" },
-        { status: 400 }
-      );
-    }
-
-    if (!["name", "phone"].includes(searchType)) {
-      return NextResponse.json(
-        { error: "搜尋類型不正確" },
+        { ok: false, error: "頁碼不正確" },
         { status: 400 }
       );
     }
 
     if (keyword.length > 100) {
       return NextResponse.json(
-        { error: "搜尋內容過長" },
+        { ok: false, error: "搜尋內容過長" },
         { status: 400 }
       );
     }
 
-    const donationsRef = adminDb.collection("donations");
+    // 從 Firebase Admin SDK 讀取資料
+    const snapshot = await adminDb
+      .collection("donations")
+      .orderBy("createdAt", "desc")
+      .get();
 
-    let query: Query = donationsRef;
-
-    // 姓名或電話開頭搜尋
-    if (keyword) {
-      const field =
-        searchType === "name" ? "donorName" : "donorPhone";
-
-      query = query
-        .where(field, ">=", keyword)
-        .where(field, "<=", keyword + "\uf8ff");
-    }
-
-    // 先取得符合條件的總筆數
-    const countSnapshot = await query.count().get();
-    const totalCount = countSnapshot.data().count;
-
-    // 依建立時間排序，最新的排前面
-    query = query.orderBy("createdAt", "desc");
-
-    // 使用游標分頁，避免使用 offset 跳過大量文件
-    // 這裡先簡化為逐頁取得游標，確保一般分頁可運作
-    let lastDocument:
-      | FirebaseFirestore.QueryDocumentSnapshot
-      | undefined;
-
-    if (page > 1) {
-      const cursorSnapshot = await query
-        .limit((page - 1) * PAGE_SIZE)
-        .get();
-
-      if (cursorSnapshot.empty) {
-        return NextResponse.json({
-          ok: true,
-          records: [],
-          totalCount,
-          page,
-          pageSize: PAGE_SIZE,
-        });
-      }
-
-      lastDocument =
-        cursorSnapshot.docs[cursorSnapshot.docs.length - 1];
-    }
-
-    let pageQuery = query.limit(PAGE_SIZE);
-
-    if (lastDocument) {
-      pageQuery = query.startAfter(lastDocument).limit(PAGE_SIZE);
-    }
-
-    const snapshot = await pageQuery.get();
-
-    const records = snapshot.docs.map((doc) => {
+    // 先整理資料，轉換 Firebase Timestamp
+    let records = snapshot.docs.map((doc) => {
       const data = doc.data();
 
       const createdAt = data.createdAt;
 
       return {
         id: doc.id,
+
         donorName:
           typeof data.donorName === "string"
             ? data.donorName
-            : "",
-        // 公開明細不顯示完整電話
-        donorPhone:
+            : "善心人士",
+
+        // 完整電話只在伺服器內用於搜尋
+        _donorPhone:
           typeof data.donorPhone === "string"
-            ? data.donorPhone.replace(
-                /^(\d{4})\d{3}(\d{3})$/,
-                "$1***$2"
-              )
+            ? data.donorPhone
             : "",
-        units:
-          typeof data.units === "number"
-            ? data.units
-            : 0,
+
         amount:
           typeof data.amount === "number"
             ? data.amount
             : 0,
+
+        units:
+          typeof data.units === "number"
+            ? data.units
+            : 0,
+
         status:
           typeof data.status === "string"
             ? data.status
             : "pending",
+
         receiptUrl:
-          typeof data.receiptUrl === "string"
+          typeof data.receiptUrl === "string" &&
+          /^https:\/\//i.test(data.receiptUrl)
             ? data.receiptUrl
             : "",
+
         createdAt:
           createdAt instanceof Timestamp
             ? createdAt.toDate().toISOString()
-            : null,
+            : createdAt &&
+                typeof createdAt.toDate === "function"
+              ? createdAt.toDate().toISOString()
+              : null,
       };
     });
 
+    // 姓名或電話搜尋
+    if (keyword) {
+      if (searchType === "phone") {
+        records = records.filter((record) =>
+          record._donorPhone.includes(keyword)
+        );
+      } else {
+        records = records.filter((record) =>
+          record.donorName
+            .toLowerCase()
+            .includes(keyword.toLowerCase())
+        );
+      }
+    }
+
+    const totalCount = records.length;
+
+    const totalPages = Math.ceil(
+      totalCount / PAGE_SIZE
+    );
+
+    const startIndex = (page - 1) * PAGE_SIZE;
+
+    const pageRecords = records
+      .slice(startIndex, startIndex + PAGE_SIZE)
+      .map(({ _donorPhone, ...record }) => ({
+        ...record,
+
+        // 公開明細不回傳完整電話
+        donorPhone: _donorPhone.replace(
+          /^(\d{4})\d{3}(\d{3})$/,
+          "$1***$2"
+        ),
+      }));
+
     return NextResponse.json({
       ok: true,
-      records,
+      records: pageRecords,
       totalCount,
       page,
       pageSize: PAGE_SIZE,
+      totalPages,
     });
   } catch (error) {
     console.error("讀取公益捐款明細失敗：", error);
 
     return NextResponse.json(
-      { error: "捐款紀錄載入失敗，請稍後再試。" },
+      {
+        ok: false,
+        error: "捐款紀錄載入失敗，請稍後再試。",
+      },
       { status: 500 }
     );
   }
@@ -214,22 +212,25 @@ export async function POST(req: Request) {
       );
     }
 
-    const docRef = await adminDb.collection("donations").add({
-      donorName,
-      donorPhone,
-      units,
-      amount,
-      donorAccountLast5,
-      status: "pending",
-      receiptUrl: "",
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    const docRef = await adminDb
+      .collection("donations")
+      .add({
+        donorName,
+        donorPhone,
+        units,
+        amount,
+        donorAccountLast5,
+        status: "pending",
+        receiptUrl: "",
+        createdAt: FieldValue.serverTimestamp(),
+      });
 
     return NextResponse.json(
       {
         ok: true,
         donationId: docRef.id,
-        message: "認捐資料已成功送出，請等待農場聯繫核對。",
+        message:
+          "認捐資料已成功送出，請等待農場聯繫核對。",
       },
       { status: 201 }
     );
@@ -237,7 +238,9 @@ export async function POST(req: Request) {
     console.error("公益認捐 API 錯誤：", error);
 
     return NextResponse.json(
-      { error: "認捐資料送出失敗，請稍後再試。" },
+      {
+        error: "認捐資料送出失敗，請稍後再試。",
+      },
       { status: 500 }
     );
   }

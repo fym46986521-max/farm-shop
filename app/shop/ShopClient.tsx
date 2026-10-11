@@ -272,7 +272,7 @@ if (liff.isLoggedIn()) {
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 // 載入捐款明細
 const loadDonationRecords = async (
-  page: number,
+  page = 1,
   keyword = donationSearchKeyword,
   searchType = donationSearchType
 ) => {
@@ -296,7 +296,7 @@ const loadDonationRecords = async (
 
     const result = await response.json();
 
-    if (!response.ok) {
+    if (!response.ok || !result.ok) {
       throw new Error(
         result.error || "捐款紀錄載入失敗"
       );
@@ -304,28 +304,21 @@ const loadDonationRecords = async (
 
     setDonationRecords(result.records || []);
     setDonationTotalCount(result.totalCount || 0);
-    setDonationPage(result.page || page);
+    setDonationPage(result.page || 1);
 
-    // 此版本由 API 處理分頁
+    // API 以頁碼分頁，這裡不需要 Firestore cursor
     setDonationPageCursors([null]);
   } catch (error) {
-  console.error("載入捐款明細失敗：", error);
+    console.error("載入捐款明細失敗：", error);
 
-  if (error instanceof Error) {
-    console.error("錯誤名稱：", error.name);
-    console.error("錯誤訊息：", error.message);
+    setDonationRecordsError(
+      error instanceof Error
+        ? error.message
+        : "捐款紀錄載入失敗，請稍後再試。"
+    );
+  } finally {
+    setDonationRecordsLoading(false);
   }
-
-  setDonationRecordsError(
-    error instanceof Error
-      ? `捐款紀錄載入失敗：${error.message}`
-      : "捐款紀錄載入失敗，請稍後再試。"
-  );
-
-  setDonationRecords([]);
-} finally {
-  setDonationRecordsLoading(false);
-}
 
 
   
