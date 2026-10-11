@@ -353,14 +353,19 @@ const loadDonationRecords = async (
       });
     }
   } catch (error) {
-    console.error("載入捐款明細失敗：", error);
+  console.error("載入捐款明細失敗：", error);
 
-    setDonationRecordsError(
-      "捐款紀錄載入失敗，請稍後再試。"
-    );
-  } finally {
-    setDonationRecordsLoading(false);
-  }
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : String(error);
+
+  console.error("Firestore 詳細錯誤：", errorMessage);
+
+  setDonationRecordsError(
+    `捐款紀錄載入失敗：${errorMessage}`
+  );
+}
   
 
 };const submitDonation = async () => {
