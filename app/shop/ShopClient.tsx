@@ -16,6 +16,29 @@ import {
 } from "firebase/firestore";
 import { useRouter} from "next/navigation";
 import liff from "@line/liff";
+function formatDonationDate(
+  value: string | null | undefined
+): string {
+  if (!value) {
+    return "日期待確認";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "日期待確認";
+  }
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
 export default function ShopClient() {
   const router = useRouter();
   
@@ -1581,24 +1604,13 @@ if (!liff.isLoggedIn()) {
                   <div className="flex items-start justify-between gap-3">
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500">
                         📅 捐款日期
-                      </p>
+                      </div>
 
-                      <p className="mt-1 break-words font-bold text-gray-800">
-                        {record.createdAt?.toDate
-                          ? record.createdAt
-                              .toDate()
-                              .toLocaleString("zh-TW", {
-                                year: "numeric",
-                                month: "2-digit",
-                                day: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })
-                          : "日期待確認"}
-                      </p>
+                      <div className="mt-1 text-lg font-bold text-gray-900">
+                        {formatDonationDate(record.createdAt)}
+                      </div>
                     </div>
 
                     <span className="shrink-0 rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
@@ -1619,21 +1631,6 @@ if (!liff.isLoggedIn()) {
                       {record.donorName || "未提供姓名"}
                     </p>
                   </div>
-                  {/* 捐款日期 */}
-<p className="mt-1 text-sm text-gray-500">
-  捐款日期：
-  {record.createdAt?.toDate
-    ? record.createdAt.toDate().toLocaleString("zh-TW", {
-        timeZone: "Asia/Taipei",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-    : "日期處理中"}
-</p>
                   {/* 金額 */}
                   <div className="mt-4">
                     <p className="text-sm text-gray-500">
