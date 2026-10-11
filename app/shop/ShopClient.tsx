@@ -37,6 +37,16 @@ export default function ShopClient() {
 
 // 主分頁：商品商城 / 一菜一心公益計畫
 const [activeTab, setActiveTab] = useState<"shop" | "donation">("shop");
+// 一菜一心認捐彈窗
+const [showDonationModal, setShowDonationModal] = useState(false);
+
+// 認捐人資料
+const [donorName, setDonorName] = useState("");
+const [donorPhone, setDonorPhone] = useState("");
+const [donorAccountLast5, setDonorAccountLast5] = useState("");
+
+// 認捐流程步驟：1 填寫資料、2 查看匯款資訊
+const [donationStep, setDonationStep] = useState<1 | 2>(1);
 const [donationUnits, setDonationUnits] = useState(1);
 const [showEmptyAlert, setShowEmptyAlert] = useState(false);
 const [lineUserId, setLineUserId] = useState("");
@@ -809,9 +819,8 @@ if (!liff.isLoggedIn()) {
             <button
               type="button"
               onClick={() => {
-                alert(
-                  "感謝您支持一菜一心公益計畫！目前認捐功能尚未正式開放，請先聯絡九斗合作農場。"
-                );
+                  setDonationStep(1);
+                  setShowDonationModal(true);
               }}
               className="w-full mt-5 py-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-lg"
             >
@@ -846,8 +855,215 @@ if (!liff.isLoggedIn()) {
 
       </div>
     </div>
-  
-)}
+        )}
+
+      {/* 一菜一心認捐彈窗 */}
+      {showDonationModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowDonationModal(false)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 右上角關閉按鈕 */}
+            <button
+              type="button"
+              onClick={() => setShowDonationModal(false)}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-2xl text-gray-600 hover:bg-gray-200"
+              aria-label="關閉認捐視窗"
+            >
+              ×
+            </button>
+
+            {/* 彈窗標題 */}
+            <div className="mb-6 pr-10">
+              <p className="text-sm font-bold tracking-widest text-green-700">
+                JIUDOU FARM CHARITY
+              </p>
+
+              <h2 className="mt-2 text-2xl font-black text-gray-800">
+                💚 填寫認捐資料
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-gray-500">
+                感謝您支持九斗合作農場「一菜一心」公益計畫。
+              </p>
+            </div>
+
+            {donationStep === 1 ? (
+              <div className="space-y-5">
+
+                {/* 姓名 */}
+                <div>
+                  <label className="mb-2 block font-bold text-gray-700">
+                    捐款人姓名 <span className="text-red-500">*</span>
+                  </label>
+
+                  <input
+                    type="text"
+                    value={donorName}
+                    onChange={(e) => setDonorName(e.target.value)}
+                    placeholder="請輸入您的姓名"
+                    autoComplete="name"
+                    maxLength={50}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  />
+                </div>
+
+                {/* 電話 */}
+                <div>
+                  <label className="mb-2 block font-bold text-gray-700">
+                    聯絡電話 <span className="text-red-500">*</span>
+                  </label>
+
+                  <input
+                    type="tel"
+                    value={donorPhone}
+                    onChange={(e) =>
+                      setDonorPhone(e.target.value.replace(/[^\d+\-\s]/g, ""))
+                    }
+                    placeholder="請輸入聯絡電話"
+                    autoComplete="tel"
+                    maxLength={20}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  />
+                </div>
+
+                {/* 認捐金額：沿用原本選好的金額 */}
+                <div>
+                  <label className="mb-2 block font-bold text-gray-700">
+                    本次認捐金額
+                  </label>
+
+                  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-4">
+                    <p className="text-3xl font-black text-orange-600">
+                      NT${donationUnits * 100}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                      {donationUnits} 個認捐單位，每單位 NT$100
+                    </p>
+                  </div>
+                </div>
+
+                {/* 轉出帳號末五碼 */}
+                <div>
+                  <label className="mb-2 block font-bold text-gray-700">
+                    轉出銀行帳號末 5 碼{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{5}"
+                    value={donorAccountLast5}
+                    onChange={(e) =>
+                      setDonorAccountLast5(
+                        e.target.value.replace(/\D/g, "").slice(0, 5)
+                      )
+                    }
+                    placeholder="請輸入 5 位數字"
+                    maxLength={5}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-lg tracking-[0.3em] outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  />
+
+                  <p className="mt-2 text-xs leading-5 text-gray-500">
+                    請填寫實際轉出帳戶的末 5 碼，不是銀行密碼。
+                  </p>
+                </div>
+
+                {/* 下一步 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!donorName.trim()) {
+                      alert("請填寫捐款人姓名");
+                      return;
+                    }
+
+                    if (!/^[0-9+\-\s]{8,20}$/.test(donorPhone.trim())) {
+                      alert("請確認聯絡電話格式");
+                      return;
+                    }
+
+                    if (!/^\d{5}$/.test(donorAccountLast5)) {
+                      alert("請輸入正確的 5 位數字帳號末碼");
+                      return;
+                    }
+
+                    setDonationStep(2);
+                  }}
+                  className="w-full rounded-xl bg-green-600 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-green-700"
+                >
+                  下一步：查看匯款資訊
+                </button>
+
+              </div>
+            ) : (
+              <div className="space-y-5">
+
+                <div className="rounded-2xl bg-green-50 p-5">
+                  <h3 className="text-lg font-black text-green-800">
+                    💳 一菜一心公益匯款資訊
+                  </h3>
+
+                  <p className="mt-3 text-sm leading-7 text-gray-700">
+                    收款戶名：待設定
+                    <br />
+                    銀行名稱：待設定
+                    <br />
+                    銀行代碼：待設定
+                    <br />
+                    銀行帳號：待設定
+                  </p>
+
+                  <div className="mt-4 border-t border-green-200 pt-4">
+                    <p className="text-sm text-gray-600">
+                      本次認捐金額
+                    </p>
+
+                    <p className="mt-1 text-3xl font-black text-orange-600">
+                      NT${donationUnits * 100}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+                  請依照匯款資訊完成轉帳。送出認捐資料後，九斗合作農場將核對實際入帳紀錄，再與您聯絡確認。
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDonationStep(1)}
+                  className="w-full rounded-xl border border-gray-300 py-3 font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  返回修改資料
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert("目前尚未連接認捐資料庫，請先完成 Firebase 設定。");
+                  }}
+                  className="w-full rounded-xl bg-orange-500 py-4 text-lg font-bold text-white shadow-lg hover:bg-orange-600"
+                >
+                  我已確認，送出認捐資料 💚
+                </button>
+
+              </div>
+            )}
+
+            <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+              您的資料將用於本次公益認捐聯絡與匯款核對。
+            </p>
+          </div>
+        </div>
+      )}
+
+    
       {/* 空購物車提示 */}
       {showEmptyAlert && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
