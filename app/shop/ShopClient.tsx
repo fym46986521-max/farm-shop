@@ -280,67 +280,46 @@ const loadDonationRecords = async (
   setDonationRecordsError("");
 
   try {
-    const donationsRef = collection(db, "donations");
+    const params = new URLSearchParams({
+      page: String(page),
+      keyword: keyword.trim(),
+      searchType,
+    });
 
-    const constraints: any[] = [];
-
-    // 姓名或電話搜尋
-    const searchValue = keyword.trim();
-
-    if (searchValue) {
-      if (searchType === "name") {
-        constraints.push(
-          where("donorName", ">=", searchValue),
-          where("donorName", "<=", searchValue + "\uf8ff")
-        );
-      } else {
-        constraints.push(
-          where("donorPhone", ">=", searchValue),
-          where("donorPhone", "<=", searchValue + "\uf8ff")
-        );
+    const response = await fetch(
+      `/api/donations?${params.toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
       }
-    }
-
-    // 最新捐款優先
-    constraints.push(orderBy("createdAt", "desc"));
-
-    // 先直接查詢資料，不先執行總筆數統計
-    const pageQuery = query(
-      donationsRef,
-      ...constraints,
-      limit(DONATION_PAGE_SIZE)
     );
 
-    const snapshot = await getDocs(pageQuery);
+    const result = await response.json();
 
-    const records = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    if (!response.ok) {
+      throw new Error(
+        result.error || "捐款紀錄載入失敗"
+      );
+    }
 
-    console.log("公益捐款讀取成功，筆數：", records.length);
-    console.log("公益捐款資料：", records);
+    setDonationRecords(result.records || []);
+    setDonationTotalCount(result.totalCount || 0);
+    setDonationPage(result.page || page);
 
-    setDonationRecords(records);
-    setDonationPage(1);
+    // 此版本由 API 處理分頁
     setDonationPageCursors([null]);
-
-    // 暫時使用本次查到的筆數
-    setDonationTotalCount(records.length);
   } catch (error) {
     console.error("載入捐款明細失敗：", error);
 
-    const errorMessage =
+    setDonationRecordsError(
       error instanceof Error
         ? error.message
-        : String(error);
-
-    setDonationRecordsError(
-      `捐款紀錄載入失敗：${errorMessage}`
+        : "捐款紀錄載入失敗，請稍後再試。"
     );
   } finally {
     setDonationRecordsLoading(false);
   }
+
 
   
 
