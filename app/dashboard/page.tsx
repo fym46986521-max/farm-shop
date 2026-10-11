@@ -84,6 +84,7 @@ export default function DashboardPage() {
   const [cost, setCost] = useState(0);
   const [profit, setProfit] = useState(0);
   const [showOneHeart, setShowOneHeart] = useState(false);
+  const [oneHeartTab, setOneHeartTab] = useState<"stats" | "records">("stats");
   const fetchOrders = async () => {
   try {
     const res = await fetch("/api/orders");
@@ -795,29 +796,157 @@ if (detailFiles.length > 0) {
             </div>
 
             <div className="mb-6 flex gap-3 border-b pb-3">
-              <button
-                className="rounded bg-green-600 px-4 py-2 text-white"
-              >
-                捐贈統計
-              </button>
+  <button
+    onClick={() => setOneHeartTab("stats")}
+    className={`rounded px-4 py-2 ${
+      oneHeartTab === "stats"
+        ? "bg-green-600 text-white"
+        : "bg-gray-200 text-gray-700"
+    }`}
+  >
+    捐贈統計
+  </button>
 
-              <button
-                className="rounded bg-gray-200 px-4 py-2"
-              >
-                每週捐贈紀錄
-              </button>
-            </div>
+  <button
+    onClick={() => setOneHeartTab("records")}
+    className={`rounded px-4 py-2 ${
+      oneHeartTab === "records"
+        ? "bg-green-600 text-white"
+        : "bg-gray-200 text-gray-700"
+    }`}
+  >
+    每週捐贈紀錄
+  </button>
+</div>
 
-            <div className="rounded-lg border p-5">
-              <h3 className="mb-4 text-lg font-bold">
-                捐贈統計
-              </h3>
+            {oneHeartTab === "stats" ? (
+  <div className="rounded-lg border p-5">
+    <h3 className="mb-4 text-lg font-bold">
+      📊 捐贈統計
+    </h3>
 
-              <p className="text-gray-500">
-                下一步將串接 Firebase，顯示每日捐贈名單、
-                每週捐贈排行及每月捐贈排行。
-              </p>
-            </div>
+    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="rounded-lg bg-green-50 p-4">
+        <p className="text-sm text-gray-600">今日捐贈金額</p>
+        <p className="mt-2 text-2xl font-bold text-green-700">
+          $0
+        </p>
+      </div>
+
+      <div className="rounded-lg bg-blue-50 p-4">
+        <p className="text-sm text-gray-600">本週捐贈金額</p>
+        <p className="mt-2 text-2xl font-bold text-blue-700">
+          $0
+        </p>
+      </div>
+
+      <div className="rounded-lg bg-yellow-50 p-4">
+        <p className="text-sm text-gray-600">本月捐贈金額</p>
+        <p className="mt-2 text-2xl font-bold text-yellow-700">
+          $0
+        </p>
+      </div>
+    </div>
+
+    <h4 className="mb-3 font-bold">每日捐贈名單</h4>
+
+    <p className="text-sm text-gray-500">
+      尚未串接 Firebase，下一步會讀取實際捐贈資料。
+    </p>
+
+    <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div>
+        <h4 className="mb-3 font-bold">🏆 每週捐贈排行</h4>
+        <p className="text-sm text-gray-500">尚無統計資料</p>
+      </div>
+
+      <div>
+        <h4 className="mb-3 font-bold">🏆 每月捐贈排行</h4>
+        <p className="text-sm text-gray-500">尚無統計資料</p>
+      </div>
+    </div>
+  </div>
+) : (
+  <div className="rounded-lg border p-5">
+    <h3 className="mb-4 text-lg font-bold">
+      📋 每週捐贈紀錄
+    </h3>
+
+    <p className="mb-4 text-sm text-gray-500">
+      登記實際捐贈日期、受捐助機構、捐贈照片及收據。
+    </p>
+
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label className="mb-1 block font-medium">
+          捐贈日期
+        </label>
+        <input
+          type="date"
+          className="w-full rounded border p-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block font-medium">
+          受捐助機構
+        </label>
+        <div className="flex gap-2">
+          <select className="w-full rounded border p-2">
+            <option value="">請選擇機構</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={() => {
+              const organization = window.prompt("請輸入新的受捐助機構名稱");
+              if (organization?.trim()) {
+                alert(
+                  `已輸入機構名稱：${organization.trim()}。下一步將接上 Firebase 儲存。`
+                );
+              }
+            }}
+            className="shrink-0 rounded bg-green-600 px-4 py-2 text-white"
+          >
+            ＋新增
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block font-medium">
+          實際捐贈照片
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          className="w-full rounded border p-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block font-medium">
+          捐贈收據
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          className="w-full rounded border p-2"
+        />
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => {
+        alert("下一步將完成 Firebase 儲存功能。");
+      }}
+      className="mt-6 rounded bg-green-600 px-6 py-3 font-bold text-white"
+    >
+      儲存捐贈紀錄
+    </button>
+  </div>
+)}
 
           </div>
         </div>
