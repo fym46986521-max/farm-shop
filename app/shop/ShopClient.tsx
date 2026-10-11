@@ -39,7 +39,13 @@ export default function ShopClient() {
 const [activeTab, setActiveTab] = useState<"shop" | "donation">("shop");
 // 一菜一心認捐彈窗
 const [showDonationModal, setShowDonationModal] = useState(false);
+// 公益捐款明細彈窗
+const [showDonationRecords, setShowDonationRecords] = useState(false);
 
+// 公益明細彈窗分頁
+const [donationRecordsTab, setDonationRecordsTab] = useState<
+  "records" | "ranking"
+>("records");
 // 認捐人資料
 const [donorName, setDonorName] = useState("");
 const [donorPhone, setDonorPhone] = useState("");
@@ -854,6 +860,17 @@ if (!liff.isLoggedIn()) {
         </p>
 
       </div>
+      {/* 查看公益捐款明細按鈕 */}
+<button
+  type="button"
+  onClick={() => {
+    setDonationRecordsTab("records");
+    setShowDonationRecords(true);
+  }}
+  className="mt-5 w-full rounded-2xl bg-green-700 px-5 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-green-800 active:scale-[0.98]"
+>
+  📋 查看公益捐款明細與排名
+</button>
     </div>
         )}
 
@@ -908,7 +925,7 @@ if (!liff.isLoggedIn()) {
                     placeholder="請輸入您的姓名"
                     autoComplete="name"
                     maxLength={50}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
                   />
                 </div>
 
@@ -927,7 +944,7 @@ if (!liff.isLoggedIn()) {
                     placeholder="請輸入聯絡電話"
                     autoComplete="tel"
                     maxLength={20}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
                   />
                 </div>
 
@@ -967,7 +984,7 @@ if (!liff.isLoggedIn()) {
                     }
                     placeholder="請輸入 5 位數字"
                     maxLength={5}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-lg tracking-[0.3em] outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
                   />
 
                   <p className="mt-2 text-xs leading-5 text-gray-500">
@@ -1060,6 +1077,156 @@ if (!liff.isLoggedIn()) {
               您的資料將用於本次公益認捐聯絡與匯款核對。
             </p>
           </div>
+          {/* 公益捐款明細與排名彈窗 */}
+{showDonationRecords && (
+  <div
+    className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3 sm:p-5"
+    onClick={() => setShowDonationRecords(false)}
+  >
+    <div
+      className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 標題 */}
+      <div className="relative bg-gradient-to-r from-green-800 to-green-600 px-5 py-6 text-white sm:px-7">
+        <button
+          type="button"
+          onClick={() => setShowDonationRecords(false)}
+          aria-label="關閉公益捐款明細"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-3xl hover:bg-white/30"
+        >
+          ×
+        </button>
+
+        <p className="text-xs font-bold tracking-[0.2em] text-green-100">
+          JIUDOU FARM CHARITY
+        </p>
+
+        <h2 className="mt-2 pr-10 text-2xl font-black">
+          💚 一菜一心公益紀錄
+        </h2>
+
+        <p className="mt-2 text-sm text-green-50">
+          感謝每一位支持公益、讓善意持續發生的朋友。
+        </p>
+      </div>
+
+      {/* 分頁按鈕 */}
+      <div className="grid grid-cols-2 gap-2 border-b border-gray-200 bg-gray-50 p-3">
+        <button
+          type="button"
+          onClick={() => setDonationRecordsTab("records")}
+          className={`rounded-xl px-3 py-3 font-bold transition ${
+            donationRecordsTab === "records"
+              ? "bg-green-700 text-white shadow"
+              : "bg-white text-gray-700 hover:bg-green-50"
+          }`}
+        >
+          📋 捐款明細
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDonationRecordsTab("ranking")}
+          className={`rounded-xl px-3 py-3 font-bold transition ${
+            donationRecordsTab === "ranking"
+              ? "bg-green-700 text-white shadow"
+              : "bg-white text-gray-700 hover:bg-green-50"
+          }`}
+        >
+          🏆 愛心捐款排名
+        </button>
+      </div>
+
+      {/* 內容區域 */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+
+        {/* 捐款明細 */}
+        {donationRecordsTab === "records" && (
+          <div>
+            <h3 className="mb-4 text-xl font-black text-gray-900">
+              每一份善意，都值得被記錄
+            </h3>
+
+            <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              <table className="w-full min-w-[540px] text-left text-sm">
+                <thead className="bg-green-50 text-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">捐款日期</th>
+                    <th className="px-4 py-3 font-bold">捐款人</th>
+                    <th className="px-4 py-3 text-right font-bold">
+                      捐款金額
+                    </th>
+                    <th className="px-4 py-3 text-center font-bold">
+                      收據
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-12 text-center text-gray-500"
+                    >
+                      💚 感謝您的關注
+                      <p className="mt-2 text-xs">
+                        公益捐款紀錄完成串接後，將在此顯示最新資料。
+                      </p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p className="mt-3 text-xs leading-6 text-gray-500">
+              捐款日期將以捐款人提交認捐資料的日期為準，最新紀錄排列在最上方。
+            </p>
+          </div>
+        )}
+
+        {/* 捐款排名 */}
+        {donationRecordsTab === "ranking" && (
+          <div>
+            <h3 className="mb-2 text-xl font-black text-gray-900">
+              🏆 愛心捐款排行榜
+            </h3>
+
+            <p className="mb-5 text-sm leading-6 text-gray-500">
+              依捐款人累計認捐金額排序，感謝每一位支持一菜一心公益計畫的朋友。
+            </p>
+
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-10 text-center">
+                <p className="text-3xl">💚</p>
+
+                <p className="mt-3 font-bold text-gray-700">
+                  愛心排名即將揭曉
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  待公益捐款資料完成串接後，將依姓名、聯絡電話識別捐款人，
+                  合併計算累計金額並由高至低排序。
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs leading-6 text-gray-500">
+              為保護個人隱私，公開排名時建議只顯示姓名，不公開完整電話或銀行帳號。
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 底部 */}
+      <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 text-center">
+        <p className="text-xs leading-5 text-gray-500">
+          九斗合作農場｜一菜一心公益計畫
+        </p>
+      </div>
+    </div>
+  </div>
+)}
         </div>
       )}
 
