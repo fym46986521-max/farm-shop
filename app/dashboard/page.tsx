@@ -1167,26 +1167,38 @@ if (detailFiles.length > 0) {
       </div>
 
       <div>
-        <label className="mb-1 block font-medium">
-          實際捐贈照片
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          className="w-full rounded border p-2"
-        />
-      </div>
+  <label className="mb-1 block font-medium">
+    實際捐贈照片
+  </label>
+
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const file = e.target.files?.[0] ?? null;
+      setDonationImageFile(file);
+      console.log("實際捐贈照片：", file);
+    }}
+    className="w-full rounded border p-2"
+  />
+</div>
 
       <div>
-        <label className="mb-1 block font-medium">
-          捐贈收據
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          className="w-full rounded border p-2"
-        />
-      </div>
+  <label className="mb-1 block font-medium">
+    捐贈收據
+  </label>
+
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const file = e.target.files?.[0] ?? null;
+      setReceiptImageFile(file);
+      console.log("捐贈收據：", file);
+    }}
+    className="w-full rounded border p-2"
+  />
+</div>
     </div>
 
     <button
