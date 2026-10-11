@@ -68,6 +68,7 @@ const [donorAccountLast5, setDonorAccountLast5] = useState("");
 // 認捐流程步驟：1 填寫資料、2 查看匯款資訊
 const [donationStep, setDonationStep] = useState<1 | 2>(1);
 const [donationUnits, setDonationUnits] = useState(1);
+const [donationSubmitting, setDonationSubmitting] = useState(false);
 const [showEmptyAlert, setShowEmptyAlert] = useState(false);
 const [lineUserId, setLineUserId] = useState("");
 // 捐款明細搜尋
@@ -359,6 +360,83 @@ const loadDonationRecords = async (
     );
   } finally {
     setDonationRecordsLoading(false);
+  }
+  
+
+};const submitDonation = async () => {
+  if (donationSubmitting) return;
+
+  const name = donorName.trim();
+  const phone = donorPhone.trim();
+
+  if (!name) {
+    alert("請輸入捐款人姓名");
+    return;
+  }
+
+  if (!/^09\d{8}$/.test(phone)) {
+    alert("請輸入正確的台灣手機號碼");
+    return;
+  }
+
+  if (!/^\d{5}$/.test(donorAccountLast5)) {
+    alert("請輸入正確的 5 位數字帳號末碼");
+    return;
+  }
+
+  if (
+    !Number.isSafeInteger(donationUnits) ||
+    donationUnits < 1 ||
+    donationUnits > 10000
+  ) {
+    alert("認捐單位數不正確");
+    return;
+  }
+
+  setDonationSubmitting(true);
+
+  try {
+    const response = await fetch("/api/donations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        donorName: name,
+        donorPhone: phone,
+        donorAccountLast5,
+        units: donationUnits,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || "認捐資料送出失敗，請稍後再試。"
+      );
+    }
+
+    alert(
+      `認捐資料已送出！\n認捐金額：NT$${donationUnits * 100}\n請等待農場聯繫核對。`
+    );
+
+    setShowDonationModal(false);
+    setDonationStep(1);
+    setDonorName("");
+    setDonorPhone("");
+    setDonorAccountLast5("");
+    setDonationUnits(1);
+  } catch (error) {
+    console.error("認捐送出失敗：", error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "認捐資料送出失敗，請稍後再試。"
+    );
+  } finally {
+    setDonationSubmitting(false);
   }
 };
   return (
@@ -1251,14 +1329,15 @@ if (!liff.isLoggedIn()) {
                 </button>
 
                 <button
-                  type="button"
-                  onClick={() => {
-                    alert("目前尚未連接認捐資料庫，請先完成 Firebase 設定。");
-                  }}
-                  className="w-full rounded-xl bg-orange-500 py-4 text-lg font-bold text-white shadow-lg hover:bg-orange-600"
-                >
-                  我已確認，送出認捐資料 💚
-                </button>
+  type="button"
+  onClick={submitDonation}
+  disabled={donationSubmitting}
+  className="w-full rounded-xl bg-orange-500 py-4 text-lg font-bold text-white shadow-lg hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {donationSubmitting
+    ? "資料送出中，請稍候…"
+    : "我已確認，送出認捐資料 💚"}
+</button>
 
               </div>
             )}
