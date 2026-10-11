@@ -37,6 +37,9 @@ export default function ShopClient() {
 
 // 主分頁：商品商城 / 一菜一心公益計畫
 const [activeTab, setActiveTab] = useState<"shop" | "donation">("shop");
+
+// 收據預覽視窗
+const [selectedDonationReceipt, setSelectedDonationReceipt] = useState<string | null>(null);
 // 一菜一心認捐彈窗
 const [showDonationModal, setShowDonationModal] = useState(false);
 // 公益捐款明細彈窗
@@ -439,16 +442,17 @@ if (!liff.isLoggedIn()) {
                 {item.name}
               </p>
 
-              <p className="text-sm text-gray-500 line-clamp-2">
-                {item.description}
-              </p>
+              <p className="text-sm text-black line-clamp-2">
+  {item.description}
+</p>
 
-              <p className="text-green-600 font-bold text-lg mt-1">
-                ${item.price}
-              </p>
-              <p className="text-sm text-blue-600 mt-1">
-                剩餘庫存：{item.stock || 0}
-              </p>
+<p className="text-green-600 font-bold text-lg mt-1">
+  ${item.price}
+</p>
+
+<p className="text-sm text-blue-600 mt-1">
+  剩餘庫存：{item.stock || 0}
+</p>
               <button
                 onClick={() => {
                   setSelectedProduct(item);
@@ -834,7 +838,7 @@ if (!liff.isLoggedIn()) {
             </button>
 
             <p className="text-xs text-gray-500 leading-6 mt-3">
-              ※ 目前認捐按鈕尚未串接正式認捐資料庫或付款功能。
+              ※ 目前認捐僅支持轉帳捐款。
             </p>
 
           </div>
@@ -852,15 +856,7 @@ if (!liff.isLoggedIn()) {
             九斗合作農場將開立相關收據並拍照存證，
             讓每一份善意都能留下紀錄。
           </p>
-
-        </div>
-
-        <p className="text-center text-sm text-gray-500 mt-8">
-          九斗合作農場｜一菜一心公益計畫
-        </p>
-
-      </div>
-      {/* 查看公益捐款明細按鈕 */}
+          {/* 查看公益捐款明細按鈕 */}
 <button
   type="button"
   onClick={() => {
@@ -869,8 +865,16 @@ if (!liff.isLoggedIn()) {
   }}
   className="mt-5 w-full rounded-2xl bg-green-700 px-5 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-green-800 active:scale-[0.98]"
 >
-  📋 查看公益捐款明細與排名
+  📋 查看公益捐款明細
 </button>
+        </div>
+
+        <p className="text-center text-sm text-gray-500 mt-8">
+          九斗合作農場｜一菜一心公益計畫
+        </p>
+
+      </div>
+      
     </div>
         )}
 
@@ -1077,7 +1081,9 @@ if (!liff.isLoggedIn()) {
               您的資料將用於本次公益認捐聯絡與匯款核對。
             </p>
           </div>
-          {/* 公益捐款明細與排名彈窗 */}
+        </div> 
+        )}
+          {/* 公益捐款明細彈窗 */}
 {showDonationRecords && (
   <div
     className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3 sm:p-5"
@@ -1185,37 +1191,7 @@ if (!liff.isLoggedIn()) {
           </div>
         )}
 
-        {/* 捐款排名 */}
-        {donationRecordsTab === "ranking" && (
-          <div>
-            <h3 className="mb-2 text-xl font-black text-gray-900">
-              🏆 愛心捐款排行榜
-            </h3>
-
-            <p className="mb-5 text-sm leading-6 text-gray-500">
-              依捐款人累計認捐金額排序，感謝每一位支持一菜一心公益計畫的朋友。
-            </p>
-
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-10 text-center">
-                <p className="text-3xl">💚</p>
-
-                <p className="mt-3 font-bold text-gray-700">
-                  愛心排名即將揭曉
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-gray-500">
-                  待公益捐款資料完成串接後，將依姓名、聯絡電話識別捐款人，
-                  合併計算累計金額並由高至低排序。
-                </p>
-              </div>
-            </div>
-
-            <p className="mt-4 text-xs leading-6 text-gray-500">
-              為保護個人隱私，公開排名時建議只顯示姓名，不公開完整電話或銀行帳號。
-            </p>
-          </div>
-        )}
+        
       </div>
 
       {/* 底部 */}
@@ -1224,11 +1200,9 @@ if (!liff.isLoggedIn()) {
           九斗合作農場｜一菜一心公益計畫
         </p>
       </div>
-    </div>
+        </div>
   </div>
 )}
-        </div>
-      )}
 
     
       {/* 空購物車提示 */}
@@ -1356,7 +1330,7 @@ if (!liff.isLoggedIn()) {
   
 </div>
   {/* 短描述 */}
-  <p className="text-sm text-gray-500 mt-2 text-left">
+  <p className="text-sm text-black mt-2 text-left">
     {selectedProduct.description}
   </p>
 
