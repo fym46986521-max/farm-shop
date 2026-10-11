@@ -517,9 +517,236 @@ if (!liff.isLoggedIn()) {
               新臺幣
             </p>
           </div>
+        {/* 一菜一心 × ESG 永續公益理念 */}
+<section className="mt-8">
+
+  {/* 標題 */}
+  <div className="text-center mb-6">
+
+    <span className="inline-block rounded-full bg-green-100 px-4 py-2 text-sm font-bold tracking-widest text-green-800">
+      SUSTAINABLE CHARITY
+    </span>
+
+    <h2 className="mt-4 text-2xl font-black text-green-900">
+      一菜一心 × ESG
+    </h2>
+
+    <p className="mt-2 text-base font-bold text-gray-600">
+      以土地孕育善意，以行動實踐永續
+    </p>
+
+    <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-green-500" />
+
+  </div>
+
+  {/* ESG 理念介紹 */}
+  <div className="mb-5 rounded-2xl bg-gradient-to-br from-green-50 to-[#f7f4ea] p-5">
+
+    <p className="text-sm leading-8 text-gray-700">
+      我們相信，真正的公益不只是付出，更是讓善意持續發生。
+      九斗合作農場發起「一菜一心」公益計畫，將新鮮蔬菜送進方舟啟智教養院，
+      從土地友善、社會關懷到公益透明，實踐 ESG 永續理念。
+      讓每一份蔬菜承載關懷，讓每一顆善心匯聚成改變的力量。
+    </p>
+
+  </div>
+
+  {/* E：環境永續 */}
+  <div className="mb-4 overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm">
+
+    <div className="bg-gradient-to-r from-green-700 to-green-500 p-4 text-white">
+
+      <p className="text-xs font-bold tracking-widest text-green-100">
+        ENVIRONMENTAL
+      </p>
+
+      <h3 className="mt-1 text-xl font-black">
+        🌱 E｜環境永續
+      </h3>
+
+      <p className="mt-1 text-sm text-green-50">
+        從友善土地開始，讓永續融入日常
+      </p>
+
+    </div>
+
+    <div className="p-5">
+
+      <p className="text-sm leading-8 text-gray-700">
+        透過有機、友善耕作及在地新鮮蔬菜的支持，
+        以實際行動支持永續農業發展，並鼓勵食物在地化，
+        讓土地與生活形成更友善的循環。
+      </p>
+
+      <div className="mt-4 rounded-xl bg-green-50 p-4">
+
+        <p className="font-bold leading-7 text-green-800">
+          「一菜」不只是送菜，更是對土地的珍惜，也是支持友善環境的行動。
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* S：社會關懷 */}
+  <div className="mb-4 overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
+
+    <div className="bg-gradient-to-r from-emerald-700 to-teal-600 p-4 text-white">
+
+      <p className="text-xs font-bold tracking-widest text-emerald-100">
+        SOCIAL
+      </p>
+
+      <h3 className="mt-1 text-xl font-black">
+        💚 S｜社會關懷
+      </h3>
+
+      <p className="mt-1 text-sm text-emerald-50">
+        讓每一份蔬菜，都成為溫暖的陪伴
+      </p>
+
+    </div>
+
+    <div className="p-5">
+
+      <p className="text-sm leading-8 text-gray-700">
+        「一菜一心」以實際行動關懷方舟啟智教養院，
+        定期配送新鮮蔬菜，支持院童的日常飲食需求。
+        我們邀請更多人一起參與認捐，讓愛不只是個人的付出，
+        更成為社會共同成就的善循環。
+      </p>
+
+      <div className="mt-4 rounded-xl bg-emerald-50 p-4">
+
+        <p className="font-bold leading-7 text-emerald-800">
+          「一心」就是把關懷化成實際行動，讓每一份善意都能抵達需要的地方。
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* G：公益透明 */}
+  <div className="overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm">
+
+    <div className="bg-gradient-to-r from-amber-700 to-yellow-600 p-4 text-white">
+
+      <p className="text-xs font-bold tracking-widest text-amber-100">
+        GOVERNANCE
+      </p>
+
+      <h3 className="mt-1 text-xl font-black">
+        🤝 G｜公益透明
+      </h3>
+
+      <p className="mt-1 text-sm text-amber-50">
+        讓每一份善意，都有清楚的紀錄
+      </p>
+
+    </div>
+
+    <div className="p-5">
+
+      <p className="text-sm leading-8 text-gray-700">
+        我們重視每一位認捐者的信任，也相信公益需要透明、
+        負責任的執行方式。蔬菜配送至方舟啟智教養院後，
+        將開立相關收據並拍照存證，留下配送紀錄，
+        讓每一份支持都有跡可循。
+      </p>
+
+      <div className="mt-4 space-y-3">
+
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-4">
+
+          <span className="text-2xl">🥬</span>
+
+          <div>
+            <p className="font-bold text-gray-800">
+              第一步｜準備新鮮蔬菜
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              依公益計畫安排準備配送蔬菜。
+            </p>
+          </div>
 
         </div>
 
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-4">
+
+          <span className="text-2xl">🚚</span>
+
+          <div>
+            <p className="font-bold text-gray-800">
+              第二步｜送達方舟啟智教養院
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              將蔬菜實際配送至指定單位。
+            </p>
+          </div>
+
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-4">
+
+          <span className="text-2xl">📷</span>
+
+          <div>
+            <p className="font-bold text-gray-800">
+              第三步｜收據與照片存證
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              配送後開立相關收據並拍照留存，作為公益執行紀錄。
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div className="mt-4 rounded-xl bg-[#f7f4ea] p-4">
+
+        <p className="font-bold leading-7 text-amber-900">
+          有愛心，也有制度；有善意，也有責任。
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* ESG 收尾 */}
+  <div className="mt-5 rounded-2xl bg-gradient-to-br from-green-800 to-green-600 p-6 text-center text-white shadow-lg">
+
+    <p className="text-xs font-bold tracking-[0.2em] text-green-100">
+      ONE VEGETABLE · ONE HEART
+    </p>
+
+    <h3 className="mt-4 text-2xl font-black">
+      一菜，連結土地
+    </h3>
+
+    <h3 className="mt-1 text-2xl font-black">
+      一心，溫暖生命
+    </h3>
+
+    <p className="mt-4 text-sm leading-7 text-green-50">
+      邀請您與九斗合作農場一起，讓友善農業、社會關懷與公益透明成為日常，
+      讓每一份來自土地的心意，都能持續傳遞溫暖。
+    </p>
+
+  </div>
+
+</section>
+        </div>
+        
         {/* 認捐區 */}
         <div className="mt-6 rounded-2xl border border-green-200 p-5">
 
