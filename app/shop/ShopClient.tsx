@@ -517,6 +517,7 @@ if (!liff.isLoggedIn()) {
               新臺幣
             </p>
           </div>
+        </div>
         {/* 一菜一心 × ESG 永續公益理念 */}
 <section className="mt-8 w-full min-w-0 self-stretch">
 
@@ -845,7 +846,7 @@ if (!liff.isLoggedIn()) {
 
       </div>
     </div>
-  </div>
+  
 )}
       {/* 空購物車提示 */}
       {showEmptyAlert && (
