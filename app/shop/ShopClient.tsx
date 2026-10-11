@@ -282,20 +282,18 @@ const loadDonationRecords = async (
   try {
     const donationsRef = collection(db, "donations");
 
-    // 基本排序：最新捐款優先
     const constraints: any[] = [];
 
-    if (keyword.trim()) {
-      const searchValue = keyword.trim();
+    // 姓名或電話搜尋
+    const searchValue = keyword.trim();
 
+    if (searchValue) {
       if (searchType === "name") {
-        // 姓名開頭搜尋
         constraints.push(
           where("donorName", ">=", searchValue),
           where("donorName", "<=", searchValue + "\uf8ff")
         );
       } else {
-        // 電話開頭搜尋
         constraints.push(
           where("donorPhone", ">=", searchValue),
           where("donorPhone", "<=", searchValue + "\uf8ff")
@@ -303,32 +301,13 @@ const loadDonationRecords = async (
       }
     }
 
+    // 最新捐款優先
     constraints.push(orderBy("createdAt", "desc"));
 
-    // 計算符合搜尋條件的總筆數
-    const countQuery = query(
-      donationsRef,
-      ...constraints
-    );
-
-    const countSnapshot = await getCountFromServer(countQuery);
-
-    setDonationTotalCount(countSnapshot.data().count);
-
-    // 查詢指定頁面的游標
-    const cursor =
-      page === 1
-        ? null
-        : donationPageCursors[page - 1];
-
-    if (page > 1 && !cursor) {
-      throw new Error("找不到該頁的分頁位置，請重新查詢。");
-    }
-
+    // 先直接查詢資料，不先執行總筆數統計
     const pageQuery = query(
       donationsRef,
       ...constraints,
-      ...(cursor ? [startAfter(cursor)] : []),
       limit(DONATION_PAGE_SIZE)
     );
 
@@ -339,33 +318,30 @@ const loadDonationRecords = async (
       ...doc.data(),
     }));
 
+    console.log("公益捐款讀取成功，筆數：", records.length);
+    console.log("公益捐款資料：", records);
+
     setDonationRecords(records);
-    setDonationPage(page);
+    setDonationPage(1);
+    setDonationPageCursors([null]);
 
-    // 記錄下一頁的起始位置
-    if (snapshot.docs.length > 0) {
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-
-      setDonationPageCursors((previous) => {
-        const next = [...previous];
-        next[page] = lastDoc;
-        return next;
-      });
-    }
+    // 暫時使用本次查到的筆數
+    setDonationTotalCount(records.length);
   } catch (error) {
-  console.error("載入捐款明細失敗：", error);
+    console.error("載入捐款明細失敗：", error);
 
-  const errorMessage =
-    error instanceof Error
-      ? error.message
-      : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : String(error);
 
-  console.error("Firestore 詳細錯誤：", errorMessage);
+    setDonationRecordsError(
+      `捐款紀錄載入失敗：${errorMessage}`
+    );
+  } finally {
+    setDonationRecordsLoading(false);
+  }
 
-  setDonationRecordsError(
-    `捐款紀錄載入失敗：${errorMessage}`
-  );
-}
   
 
 };const submitDonation = async () => {
