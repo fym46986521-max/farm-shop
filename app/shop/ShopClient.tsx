@@ -309,16 +309,23 @@ const loadDonationRecords = async (
     // 此版本由 API 處理分頁
     setDonationPageCursors([null]);
   } catch (error) {
-    console.error("載入捐款明細失敗：", error);
+  console.error("載入捐款明細失敗：", error);
 
-    setDonationRecordsError(
-      error instanceof Error
-        ? error.message
-        : "捐款紀錄載入失敗，請稍後再試。"
-    );
-  } finally {
-    setDonationRecordsLoading(false);
+  if (error instanceof Error) {
+    console.error("錯誤名稱：", error.name);
+    console.error("錯誤訊息：", error.message);
   }
+
+  setDonationRecordsError(
+    error instanceof Error
+      ? `捐款紀錄載入失敗：${error.message}`
+      : "捐款紀錄載入失敗，請稍後再試。"
+  );
+
+  setDonationRecords([]);
+} finally {
+  setDonationRecordsLoading(false);
+}
 
 
   
@@ -1619,7 +1626,21 @@ if (!liff.isLoggedIn()) {
                       {record.donorName || "未提供姓名"}
                     </p>
                   </div>
-
+                  {/* 捐款日期 */}
+<p className="mt-1 text-sm text-gray-500">
+  捐款日期：
+  {record.createdAt?.toDate
+    ? record.createdAt.toDate().toLocaleString("zh-TW", {
+        timeZone: "Asia/Taipei",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+    : "日期處理中"}
+</p>
                   {/* 金額 */}
                   <div className="mt-4">
                     <p className="text-sm text-gray-500">
