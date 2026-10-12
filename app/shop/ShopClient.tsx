@@ -90,7 +90,10 @@ const [selectedDonationReceipt, setSelectedDonationReceipt] = useState<string | 
 const [showDonationModal, setShowDonationModal] = useState(false);
 // 公益捐款明細彈窗
 const [showDonationRecords, setShowDonationRecords] = useState(false);
-
+// 一菜一心：農場實際捐贈紀錄
+const [weeklyDonationRecords, setWeeklyDonationRecords] = useState<any[]>([]);
+const [weeklyDonationLoading, setWeeklyDonationLoading] = useState(false);
+const [selectedWeeklyImage, setSelectedWeeklyImage] = useState<string | null>(null);
 // 公益明細彈窗分頁
 const [donationRecordsTab, setDonationRecordsTab] = useState<
   "records" | "weekly">("records");
@@ -433,6 +436,48 @@ const loadDonationRecords = async (
     setDonationSubmitting(false);
   }
 };
+// 載入農場實際捐贈紀錄
+const loadWeeklyDonationRecords = async () => {
+  setWeeklyDonationLoading(true);
+
+  try {
+    const snapshot = await getDocs(
+      collection(db, "weeklyDonationRecords")
+    );
+
+    const records = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    // 最新捐贈日期排在最前面
+    records.sort((a: any, b: any) => {
+      const dateA = String(a.donationDate || "");
+      const dateB = String(b.donationDate || "");
+
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+
+      return (
+        (b.createdAt?.toMillis?.() || 0) -
+        (a.createdAt?.toMillis?.() || 0)
+      );
+    });
+
+    setWeeklyDonationRecords(records);
+  } catch (error) {
+    console.error("載入農場實際捐贈紀錄失敗：", error);
+  } finally {
+    setWeeklyDonationLoading(false);
+  }
+};
+// 開啟公益捐款明細彈窗的「每週捐贈紀錄」分頁時，重新載入資料
+useEffect(() => {
+  if (showDonationRecords && donationRecordsTab === "weekly") {
+    loadWeeklyDonationRecords();
+  }
+}, [showDonationRecords, donationRecordsTab]);
   return (
     
     <div
@@ -1398,7 +1443,10 @@ if (!liff.isLoggedIn()) {
 
         <button
   type="button"
-  onClick={() => setDonationRecordsTab("weekly")}
+  onClick={() => {
+  setDonationRecordsTab("weekly");
+  void loadWeeklyDonationRecords();
+}}
   className={`rounded-xl px-4 py-4 text-base font-bold transition ${
     donationRecordsTab === "weekly"
       ? "bg-green-700 text-white shadow-md"
