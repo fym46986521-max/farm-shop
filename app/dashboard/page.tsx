@@ -1883,7 +1883,7 @@ if (detailFiles.length > 0) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] border-collapse text-sm">
+            <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-100 text-left">
                   <th className="border p-3">匯款審核</th>
@@ -1967,15 +1967,18 @@ if (detailFiles.length > 0) {
       </button>
     )}
 
-    {/* 原本的刪除功能 */}
-    <button
-      type="button"
-      onClick={() => handleDeleteDonation(item.id)}
-      className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-2 font-bold text-white hover:bg-red-700"
-    >
-      🗑 刪除
-    </button>
+    
   </div>
+</td>
+{/* 操作：只保留刪除按鈕 */}
+<td className="w-[100px] border p-3 text-center">
+  <button
+    type="button"
+    onClick={() => handleDeleteDonation(item.id)}
+    className="w-full whitespace-nowrap rounded-lg bg-red-600 px-3 py-2 font-bold text-white hover:bg-red-700"
+  >
+    🗑 刪除
+  </button>
 </td>
                     </tr>
                   );
