@@ -271,10 +271,14 @@ export async function POST(req: Request) {
     const submittedUnits = Number(body.units);
 
     const units =
-    donationType === "monthly" ? 120 : submittedUnits;
+  donationType === "monthly"
+    ? submittedUnits * 120
+    : submittedUnits;
 
-    const amount =
-    donationType === "monthly" ? 12000 : submittedUnits * 100;
+const amount =
+  donationType === "monthly"
+    ? submittedUnits * 12000
+    : submittedUnits * 100;
 
     if (!donorName || donorName.length > 100) {
       return NextResponse.json(

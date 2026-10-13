@@ -112,7 +112,7 @@ const [donationType, setDonationType] = useState<
 
 const donationAmount =
   donationType === "monthly"
-    ? 12000
+    ? donationUnits * 12000
     : donationUnits * 100;
 const [donationSubmitting, setDonationSubmitting] = useState(false);
 const [showEmptyAlert, setShowEmptyAlert] = useState(false);
@@ -1090,7 +1090,9 @@ if (!liff.isLoggedIn()) {
             </p>
 
             <p className="text-sm text-gray-500 mt-1">
-              每單位 NT$100
+              {donationType === "free"
+                ? "每單位 NT$100"
+                : "每單位 NT$12,000，可支持一年"}
             </p>
 
             {/* 認捐單位加減 */}
