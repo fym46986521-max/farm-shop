@@ -49,7 +49,7 @@ type WeeklyDonationRecord = {
 };
 export default function ShopClient() {
   const router = useRouter();
-  
+  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState("");
 
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
@@ -1966,15 +1966,7 @@ if (!liff.isLoggedIn()) {
   </div>
 )}
 {/* 查看捐款收據 */}
-{record.receiptUrl && (
-  <button
-    type="button"
-    onClick={() => setSelectedReceiptUrl(record.receiptUrl)}
-    className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 font-bold text-green-700 transition hover:bg-green-100"
-  >
-    🧾 查看捐款收據
-  </button>
-)}
+
                 </div>
               ))}
 
