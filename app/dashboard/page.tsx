@@ -399,6 +399,193 @@ console.log("認捐資料欄位檢查：", list);
   setDonationsLoading(false);
 }
 };
+// 一菜一心：計算今日、本週、本月已確認捐款金額
+const getDonationStatistics = () => {
+  const now = new Date();
+
+  // 今天開始時間
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  // 明天開始時間
+  const tomorrowStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1
+  );
+
+  // 本週一開始時間
+  const weekStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  const dayOfWeek = weekStart.getDay();
+
+  weekStart.setDate(
+    weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+  );
+
+  // 下週一開始時間
+  const nextWeekStart = new Date(weekStart);
+  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+
+  // 本月開始時間
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  );
+
+  // 下個月開始時間
+  const nextMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    1
+  );
+
+  // 取得認捐時間
+  const getCreatedAt = (donation: any): Date | null => {
+    const value = donation.createdAt;
+
+    if (value?.toDate) {
+      return value.toDate();
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      const date = new Date(value);
+
+      if (!Number.isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    return null;
+  };
+
+  // 只統計已確認的捐款
+  const confirmedDonations = donations.filter(
+    (item: any) => item.status === "confirmed"
+  );
+
+  const sumBetween = (start: Date, end: Date) => {
+    return confirmedDonations.reduce(
+      (total: number, item: any) => {
+        const date = getCreatedAt(item);
+
+        if (
+          !date ||
+          date < start ||
+          date >= end
+        ) {
+          return total;
+        }
+
+        return total + (Number(item.amount) || 0);
+      },
+      0
+    );
+  };
+
+  return {
+    todayAmount: sumBetween(todayStart, tomorrowStart),
+    weekAmount: sumBetween(weekStart, nextWeekStart),
+    monthAmount: sumBetween(monthStart, nextMonthStart),
+  };
+};
+
+// 一菜一心：產生每週及每月捐款排行榜
+const getDonationRanking = (period: "week" | "month") => {
+  const now = new Date();
+
+  let start: Date;
+  let end: Date;
+
+  if (period === "week") {
+    start = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    const dayOfWeek = start.getDay();
+
+    start.setDate(
+      start.getDate() -
+        (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+    );
+
+    end = new Date(start);
+    end.setDate(end.getDate() + 7);
+  } else {
+    start = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
+
+    end = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1
+    );
+  }
+
+  const rankingMap = new Map<
+    string,
+    { name: string; amount: number }
+  >();
+
+  donations
+    .filter((item: any) => item.status === "confirmed")
+    .forEach((item: any) => {
+      let date: Date | null = null;
+
+      if (item.createdAt?.toDate) {
+        date = item.createdAt.toDate();
+      } else if (item.createdAt instanceof Date) {
+        date = item.createdAt;
+      } else if (
+        typeof item.createdAt === "string" ||
+        typeof item.createdAt === "number"
+      ) {
+        const parsed = new Date(item.createdAt);
+
+        if (!Number.isNaN(parsed.getTime())) {
+          date = parsed;
+        }
+      }
+
+      if (!date || date < start || date >= end) {
+        return;
+      }
+
+      const name = String(
+        item.donorName || "未提供姓名"
+      ).trim();
+
+      const current = rankingMap.get(name) || {
+        name,
+        amount: 0,
+      };
+
+      current.amount += Number(item.amount) || 0;
+
+      rankingMap.set(name, current);
+    });
+
+  return Array.from(rankingMap.values()).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
 // 開啟每週捐贈紀錄的詳細資料及編輯視窗
 const handleOpenWeeklyRecord = (record: any) => {
   setSelectedWeeklyRecord(record);
@@ -1308,21 +1495,21 @@ if (detailFiles.length > 0) {
       <div className="rounded-lg bg-green-50 p-4">
         <p className="text-sm text-gray-600">今日捐贈金額</p>
         <p className="mt-2 text-2xl font-bold text-green-700">
-          $0
+          NT$ {getDonationStatistics().todayAmount.toLocaleString("zh-TW")}
         </p>
       </div>
 
       <div className="rounded-lg bg-blue-50 p-4">
         <p className="text-sm text-gray-600">本週捐贈金額</p>
         <p className="mt-2 text-2xl font-bold text-blue-700">
-          $0
+          NT$ {getDonationStatistics().weekAmount.toLocaleString("zh-TW")}
         </p>
       </div>
 
       <div className="rounded-lg bg-yellow-50 p-4">
         <p className="text-sm text-gray-600">本月捐贈金額</p>
         <p className="mt-2 text-2xl font-bold text-yellow-700">
-          $0
+          NT$ {getDonationStatistics().monthAmount.toLocaleString("zh-TW")}
         </p>
       </div>
     </div>
@@ -1486,12 +1673,56 @@ if (detailFiles.length > 0) {
     <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
         <h4 className="mb-3 font-bold">🏆 每週捐贈排行</h4>
-        <p className="text-sm text-gray-500">尚無統計資料</p>
+
+{getDonationRanking("week").length === 0 ? (
+  <p className="text-sm text-gray-500">
+    本週尚無已確認的捐款資料
+  </p>
+) : (
+  <div className="space-y-2">
+    {getDonationRanking("week").map((item, index) => (
+      <div
+        key={item.name}
+        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+      >
+        <span>
+          {index + 1}. {item.name}
+        </span>
+
+        <span className="font-bold text-green-700">
+          NT$ {item.amount.toLocaleString("zh-TW")}
+        </span>
+      </div>
+    ))}
+  </div>
+)}
       </div>
 
       <div>
         <h4 className="mb-3 font-bold">🏆 每月捐贈排行</h4>
-        <p className="text-sm text-gray-500">尚無統計資料</p>
+
+{getDonationRanking("month").length === 0 ? (
+  <p className="text-sm text-gray-500">
+    本月尚無已確認的捐款資料
+  </p>
+) : (
+  <div className="space-y-2">
+    {getDonationRanking("month").map((item, index) => (
+      <div
+        key={item.name}
+        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+      >
+        <span>
+          {index + 1}. {item.name}
+        </span>
+
+        <span className="font-bold text-green-700">
+          NT$ {item.amount.toLocaleString("zh-TW")}
+        </span>
+      </div>
+    ))}
+  </div>
+)}
       </div>
     </div>
   </div>
