@@ -1847,6 +1847,107 @@ if (!liff.isLoggedIn()) {
   </div>
 
 </div>
+{/* 每月定期捐款進度 */}
+{record.donationType === "monthly" && (
+  <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+    <h3 className="font-bold text-blue-900">
+      📅 每月定期捐款進度
+    </h3>
+
+    <p className="mt-2 text-sm text-gray-700">
+      原始捐款金額：
+      <span className="font-bold">
+        NT$12,000
+      </span>
+    </p>
+
+    <p className="mt-1 text-sm text-gray-700">
+      每期記錄金額：
+      <span className="font-bold">
+        NT$1,000
+      </span>
+    </p>
+
+    {monthlyDonationLoading ? (
+      <p className="mt-3 text-sm text-gray-500">
+        正在載入捐款進度……
+      </p>
+    ) : (
+      (() => {
+        const plan = monthlyDonationPlans.find(
+          (item) => item.donationId === record.id
+        );
+
+        const records = monthlyDonationRecords.filter(
+          (item) => item.donationId === record.id
+        );
+
+        const recordedAmount = records.reduce(
+          (sum, item) => sum + Number(item.amount ?? 0),
+          0
+        );
+
+        const completedMonths = records.length;
+        const remainingAmount = Math.max(0, 12000 - recordedAmount);
+        const remainingMonths = Math.max(0, 12 - completedMonths);
+
+        return (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-xs text-gray-500">
+                  已記錄金額
+                </p>
+                <p className="mt-1 text-lg font-black text-green-700">
+                  NT${recordedAmount.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-xs text-gray-500">
+                  剩餘金額
+                </p>
+                <p className="mt-1 text-lg font-black text-orange-600">
+                  NT${remainingAmount.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">
+                  已完成期數
+                </span>
+                <span className="font-bold text-blue-900">
+                  {completedMonths} / 12 期
+                </span>
+              </div>
+
+              <div className="mt-2 h-3 overflow-hidden rounded-full bg-blue-100">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all"
+                  style={{
+                    width: `${Math.min(100, (completedMonths / 12) * 100)}%`,
+                  }}
+                />
+              </div>
+
+              <p className="mt-2 text-sm text-gray-600">
+                尚有 {remainingMonths} 期待記錄
+              </p>
+
+              {plan?.status === "completed" && (
+                <p className="mt-2 font-bold text-green-700">
+                  🎉 定期捐款已全部記錄完成
+                </p>
+              )}
+            </div>
+          </>
+        );
+      })()
+    )}
+  </div>
+)}
                 </div>
               ))}
 
