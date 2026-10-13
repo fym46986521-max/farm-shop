@@ -428,7 +428,7 @@ const loadDonationRecords = async (
     }
 
     alert(
-      `認捐資料已送出！\n認捐金額：NT$${donationUnits * 100}\n請等待農場聯繫核對。`
+      `認捐資料已送出！\n認捐金額：NT$${donationType === "monthly" ? 12000 : donationUnits * 100}\n請等待農場聯繫核對。`
     );
 
     setShowDonationModal(false);
@@ -1100,6 +1100,7 @@ if (!liff.isLoggedIn()) {
 <div className="flex items-center justify-center gap-3 mt-4">
 
   {/* 減少認捐單位 */}
+  {donationType === "free" && (
   <button
     type="button"
     onClick={() =>
@@ -1112,7 +1113,7 @@ if (!liff.isLoggedIn()) {
   >
     −
   </button>
-
+)}
   {/* 可直接輸入認捐單位 */}
   <input
     type="number"
@@ -1154,6 +1155,7 @@ if (!liff.isLoggedIn()) {
   />
 
   {/* 增加認捐單位 */}
+  {donationType === "free" && (
   <button
     type="button"
     onClick={() => setDonationUnits((n) => n + 1)}
@@ -1164,7 +1166,7 @@ if (!liff.isLoggedIn()) {
   >
     +
   </button>
-
+)}
 </div>
 
             {/* 認捐金額 */}
