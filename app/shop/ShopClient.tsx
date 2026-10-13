@@ -1154,12 +1154,7 @@ if (!liff.isLoggedIn()) {
         </button>
       </div>
 
-      <p className="text-center mt-4 text-gray-700">
-        認捐金額：
-        <span className="text-2xl font-black text-orange-600">
-          NT${donationAmount.toLocaleString("en-US")}
-        </span>
-      </p>
+      
     </>
   ) : (
     <>
