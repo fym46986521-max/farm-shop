@@ -49,7 +49,7 @@ type WeeklyDonationRecord = {
 };
 export default function ShopClient() {
   const router = useRouter();
-  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState("");
+  
 
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
