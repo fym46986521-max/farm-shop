@@ -104,6 +104,19 @@ const [donationDate, setDonationDate] = useState(
 const [donationImageFile, setDonationImageFile] = useState<File | null>(null);
 const [receiptImageFile, setReceiptImageFile] = useState<File | null>(null);
 const [savingDonationRecord, setSavingDonationRecord] = useState(false);
+// 每週捐贈紀錄：分頁管理
+const [weeklyDonationPage, setWeeklyDonationPage] = useState(1);
+const WEEKLY_DONATION_PAGE_SIZE = 10;
+
+// 每週捐贈紀錄：詳細資料視窗
+const [selectedWeeklyRecord, setSelectedWeeklyRecord] = useState<any>(null);
+
+// 每週捐贈紀錄：編輯表單
+const [editingWeeklyDate, setEditingWeeklyDate] = useState("");
+const [editingWeeklyOrganization, setEditingWeeklyOrganization] = useState("");
+const [editingWeeklyDonationImage, setEditingWeeklyDonationImage] = useState<File | null>(null);
+const [editingWeeklyReceiptImage, setEditingWeeklyReceiptImage] = useState<File | null>(null);
+const [savingWeeklyEdit, setSavingWeeklyEdit] = useState(false);
   const fetchOrders = async () => {
   try {
     const res = await fetch("/api/orders");
@@ -374,11 +387,167 @@ const fetchDonations = async () => {
 
     setDonations(list);
     setDonationPage(1);
+  } catch (error: any) {
+  console.error("讀取認捐資料失敗：", error);
+  console.error("Firebase 錯誤代碼：", error?.code);
+  console.error("Firebase 錯誤訊息：", error?.message);
+
+  alert(
+    `讀取認捐資料失敗\n錯誤代碼：${error?.code || "未知"}\n錯誤訊息：${error?.message || "無詳細訊息"}`
+  );
+} finally {
+  setDonationsLoading(false);
+}
+};
+// 開啟每週捐贈紀錄的詳細資料及編輯視窗
+const handleOpenWeeklyRecord = (record: any) => {
+  setSelectedWeeklyRecord(record);
+  setEditingWeeklyDate(record.donationDate || "");
+  setEditingWeeklyOrganization(record.organizationName || "");
+  setEditingWeeklyDonationImage(null);
+  setEditingWeeklyReceiptImage(null);
+};
+
+// 儲存每週捐贈紀錄的修改
+const handleUpdateWeeklyRecord = async () => {
+  if (!selectedWeeklyRecord?.id) {
+    alert("找不到這筆捐贈紀錄。");
+    return;
+  }
+
+  if (!editingWeeklyDate) {
+    alert("請選擇捐贈日期。");
+    return;
+  }
+
+  if (!editingWeeklyOrganization.trim()) {
+    alert("請輸入或選擇受捐助機構。");
+    return;
+  }
+
+  setSavingWeeklyEdit(true);
+
+  try {
+    // 預設保留原本的照片與收據
+    let donationImageUrl =
+      selectedWeeklyRecord.donationImageUrl || "";
+
+    let receiptImageUrl =
+      selectedWeeklyRecord.receiptImageUrl || "";
+
+    // 只有選擇新照片時，才重新上傳
+    if (editingWeeklyDonationImage) {
+      donationImageUrl = await uploadDonationImage(
+        editingWeeklyDonationImage,
+        "donation-photos"
+      );
+    }
+
+    // 只有選擇新收據時，才重新上傳
+    if (editingWeeklyReceiptImage) {
+      receiptImageUrl = await uploadDonationImage(
+        editingWeeklyReceiptImage,
+        "receipts"
+      );
+    }
+
+    // 更新 Firestore
+    await updateDoc(
+      doc(db, "weeklyDonationRecords", selectedWeeklyRecord.id),
+      {
+        donationDate: editingWeeklyDate,
+        organizationName: editingWeeklyOrganization.trim(),
+        organizationId:
+          donationOrganizations.find(
+            (item: any) =>
+              item.name === editingWeeklyOrganization.trim()
+          )?.id ||
+          selectedWeeklyRecord.organizationId ||
+          "",
+        donationImageUrl,
+        receiptImageUrl,
+        updatedAt: Timestamp.now(),
+      }
+    );
+
+    // 同步更新畫面
+    setWeeklyDonationRecords((prev) =>
+      prev
+        .map((item) =>
+          item.id === selectedWeeklyRecord.id
+            ? {
+                ...item,
+                donationDate: editingWeeklyDate,
+                organizationName: editingWeeklyOrganization.trim(),
+                donationImageUrl,
+                receiptImageUrl,
+                updatedAt: Timestamp.now(),
+              }
+            : item
+        )
+        .sort((a, b) => {
+          const dateCompare = String(b.donationDate || "").localeCompare(
+            String(a.donationDate || "")
+          );
+
+          if (dateCompare !== 0) return dateCompare;
+
+          const timeA =
+            a.createdAt?.toMillis?.() ??
+            (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+
+          const timeB =
+            b.createdAt?.toMillis?.() ??
+            (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+
+          return timeB - timeA;
+        })
+    );
+
+    setSelectedWeeklyRecord(null);
+    setEditingWeeklyDonationImage(null);
+    setEditingWeeklyReceiptImage(null);
+
+    alert("捐贈紀錄修改成功！");
   } catch (error) {
-    console.error("讀取認捐資料失敗：", error);
-    alert("讀取認捐資料失敗，請檢查 Firebase 權限。");
+    console.error("修改每週捐贈紀錄失敗：", error);
+    alert("修改失敗，請檢查 Firebase 權限或圖片上傳設定。");
   } finally {
-    setDonationsLoading(false);
+    setSavingWeeklyEdit(false);
+  }
+};
+
+// 刪除每週捐贈紀錄
+const handleDeleteWeeklyRecord = async (record: any) => {
+  if (!record?.id) {
+    alert("找不到這筆捐贈紀錄。");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `確定要刪除這筆捐贈紀錄嗎？\n\n日期：${record.donationDate || "未填寫"}\n機構：${record.organizationName || "未填寫"}\n\n刪除後無法復原。`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await deleteDoc(
+      doc(db, "weeklyDonationRecords", record.id)
+    );
+
+    setWeeklyDonationRecords((prev) =>
+      prev.filter((item) => item.id !== record.id)
+    );
+
+    // 若刪除的是目前開啟的紀錄，也關閉視窗
+    if (selectedWeeklyRecord?.id === record.id) {
+      setSelectedWeeklyRecord(null);
+    }
+
+    alert("捐贈紀錄已刪除。");
+  } catch (error) {
+    console.error("刪除每週捐贈紀錄失敗：", error);
+    alert("刪除失敗，請檢查 Firebase 權限。");
   }
 };
 // 審核捐款：確認或取消確認
@@ -1452,7 +1621,154 @@ if (detailFiles.length > 0) {
 >
   {savingDonationRecord ? "正在儲存..." : "儲存捐贈紀錄"}
 </button>
-  </div>
+  <button
+  type="button"
+  onClick={handleSaveWeeklyDonation}
+  disabled={savingDonationRecord}
+  className="mt-6 rounded bg-green-600 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {savingDonationRecord ? "正在儲存..." : "儲存捐贈紀錄"}
+</button>
+
+{/* 每週捐贈紀錄列表 */}
+<div className="mt-8 border-t pt-6">
+  <h4 className="mb-4 text-lg font-bold">
+    📋 已登記的捐贈紀錄
+  </h4>
+
+  {(() => {
+    const sortedRecords = [...weeklyDonationRecords].sort((a, b) => {
+      const dateCompare = String(b.donationDate || "").localeCompare(
+        String(a.donationDate || "")
+      );
+
+      if (dateCompare !== 0) return dateCompare;
+
+      const timeA =
+        a.createdAt?.toMillis?.() ??
+        (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+
+      const timeB =
+        b.createdAt?.toMillis?.() ??
+        (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+
+      return timeB - timeA;
+    });
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(sortedRecords.length / WEEKLY_DONATION_PAGE_SIZE)
+    );
+
+    const currentPage = Math.min(weeklyDonationPage, totalPages);
+
+    const startIndex =
+      (currentPage - 1) * WEEKLY_DONATION_PAGE_SIZE;
+
+    const pageRecords = sortedRecords.slice(
+      startIndex,
+      startIndex + WEEKLY_DONATION_PAGE_SIZE
+    );
+
+    return (
+      <div>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+          <span>共 {sortedRecords.length} 筆捐贈紀錄</span>
+
+          <span>
+            第 {currentPage} / {totalPages} 頁
+          </span>
+        </div>
+
+        {sortedRecords.length === 0 ? (
+          <p className="rounded-lg bg-gray-50 p-6 text-center text-gray-500">
+            目前還沒有捐贈紀錄。
+          </p>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {pageRecords.map((record: any) => (
+                <div
+                  key={record.id}
+                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleOpenWeeklyRecord(record)}
+                    className="flex-1 text-left hover:text-green-700"
+                  >
+                    <div className="font-bold">
+                      {record.donationDate || "未填寫日期"}
+                    </div>
+
+                    <div className="mt-1 text-sm text-gray-600">
+                      受捐助機構：
+                      {record.organizationName || "未填寫機構"}
+                    </div>
+
+                    <div className="mt-2 text-sm text-blue-600">
+                      點擊查看詳細資料、捐贈照片及收據 →
+                    </div>
+                  </button>
+
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWeeklyRecord(record)}
+                      className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                    >
+                      編輯
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWeeklyRecord(record)}
+                      className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                    >
+                      刪除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() =>
+                  setWeeklyDonationPage((page) => Math.max(1, page - 1))
+                }
+                className="rounded border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ← 上一頁
+              </button>
+
+              <span className="text-sm">
+                {currentPage} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setWeeklyDonationPage((page) =>
+                    Math.min(totalPages, page + 1)
+                  )
+                }
+                className="rounded border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                下一頁 →
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  })()}
+</div>
+
+</div>
 )}
 
           </div>
