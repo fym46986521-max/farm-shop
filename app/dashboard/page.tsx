@@ -85,6 +85,155 @@ export default function DashboardPage() {
   const [profit, setProfit] = useState(0);
   const [showOneHeart, setShowOneHeart] = useState(false);
   const [oneHeartTab, setOneHeartTab] = useState<"stats" | "records">("stats");
+  // 歷史排行榜查詢條件
+const currentYear = new Date().getFullYear();
+// 取得指定年份、月份的週數
+const getWeeksInMonth = (year: number, month: number) => {
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  const firstMonday = new Date(firstDay);
+  const offset = (firstMonday.getDay() + 6) % 7;
+  firstMonday.setDate(firstMonday.getDate() - offset);
+
+  const lastMonday = new Date(lastDay);
+  const lastOffset = (lastMonday.getDay() + 6) % 7;
+  lastMonday.setDate(lastMonday.getDate() - lastOffset);
+
+  return Math.round(
+    (lastMonday.getTime() - firstMonday.getTime()) /
+      (7 * 24 * 60 * 60 * 1000)
+  ) + 1;
+};
+
+// 取得指定月份的每週排行榜
+const getHistoricalWeeklyRanking = () => {
+  const year = weeklyRankYear;
+  const month = weeklyRankMonth;
+  const week = weeklyRankWeek;
+
+  const firstDay = new Date(year, month - 1, 1);
+
+  // 以星期一作為每週的第一天
+  const firstMonday = new Date(firstDay);
+  const offset = (firstMonday.getDay() + 6) % 7;
+  firstMonday.setDate(firstMonday.getDate() - offset);
+
+  const start = new Date(firstMonday);
+  start.setDate(start.getDate() + (week - 1) * 7);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+
+  const rankingMap = new Map<
+    string,
+    { name: string; amount: number }
+  >();
+
+  donations.forEach((item: any) => {
+    if (item.status !== "confirmed") return;
+
+    let date: Date | null = null;
+
+    if (item.createdAt?.toDate) {
+      date = item.createdAt.toDate();
+    } else if (item.createdAt instanceof Date) {
+      date = item.createdAt;
+    } else if (
+      typeof item.createdAt === "string" ||
+      typeof item.createdAt === "number"
+    ) {
+      const parsed = new Date(item.createdAt);
+
+      if (!Number.isNaN(parsed.getTime())) {
+        date = parsed;
+      }
+    }
+
+    if (!date || date < start || date >= end) return;
+
+    // 同時限制在所選月份內
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() + 1 !== month
+    ) {
+      return;
+    }
+
+    const name = String(item.donorName || "未提供姓名").trim();
+
+    const current = rankingMap.get(name) || {
+      name,
+      amount: 0,
+    };
+
+    current.amount += Number(item.amount) || 0;
+    rankingMap.set(name, current);
+  });
+
+  return Array.from(rankingMap.values()).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+// 取得指定年月的每月排行榜
+const getHistoricalMonthlyRanking = () => {
+  const start = new Date(monthlyRankYear, monthlyRankMonth - 1, 1);
+  const end = new Date(monthlyRankYear, monthlyRankMonth, 1);
+
+  const rankingMap = new Map<
+    string,
+    { name: string; amount: number }
+  >();
+
+  donations.forEach((item: any) => {
+    if (item.status !== "confirmed") return;
+
+    let date: Date | null = null;
+
+    if (item.createdAt?.toDate) {
+      date = item.createdAt.toDate();
+    } else if (item.createdAt instanceof Date) {
+      date = item.createdAt;
+    } else if (
+      typeof item.createdAt === "string" ||
+      typeof item.createdAt === "number"
+    ) {
+      const parsed = new Date(item.createdAt);
+
+      if (!Number.isNaN(parsed.getTime())) {
+        date = parsed;
+      }
+    }
+
+    if (!date || date < start || date >= end) return;
+
+    const name = String(item.donorName || "未提供姓名").trim();
+
+    const current = rankingMap.get(name) || {
+      name,
+      amount: 0,
+    };
+
+    current.amount += Number(item.amount) || 0;
+    rankingMap.set(name, current);
+  });
+
+  return Array.from(rankingMap.values()).sort(
+    (a, b) => b.amount - a.amount
+  );
+};
+
+const [weeklyRankYear, setWeeklyRankYear] = useState(currentYear);
+const [weeklyRankMonth, setWeeklyRankMonth] = useState(
+  new Date().getMonth() + 1
+);
+const [weeklyRankWeek, setWeeklyRankWeek] = useState(1);
+
+const [monthlyRankYear, setMonthlyRankYear] = useState(currentYear);
+const [monthlyRankMonth, setMonthlyRankMonth] = useState(
+  new Date().getMonth() + 1
+);
   // 一菜一心：顧客認捐資料
 const [donations, setDonations] = useState<any[]>([]);
 const [donationsLoading, setDonationsLoading] = useState(false);
@@ -586,6 +735,7 @@ const getDonationRanking = (period: "week" | "month") => {
     (a, b) => b.amount - a.amount
   );
 };
+
 // 開啟每週捐贈紀錄的詳細資料及編輯視窗
 const handleOpenWeeklyRecord = (record: any) => {
   setSelectedWeeklyRecord(record);
@@ -1672,58 +1822,161 @@ if (detailFiles.length > 0) {
 })()}
     <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
-        <h4 className="mb-3 font-bold">🏆 每週捐贈排行</h4>
+  <h4 className="mb-3 font-bold">🏆 每週捐贈排行</h4>
 
-{getDonationRanking("week").length === 0 ? (
-  <p className="text-sm text-gray-500">
-    本週尚無已確認的捐款資料
-  </p>
-) : (
-  <div className="space-y-2">
-    {getDonationRanking("week").map((item, index) => (
-      <div
-        key={item.name}
-        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
-      >
-        <span>
-          {index + 1}. {item.name}
-        </span>
+  <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+    <select
+      value={weeklyRankYear}
+      onChange={(e) => {
+        setWeeklyRankYear(Number(e.target.value));
+        setWeeklyRankWeek(1);
+      }}
+      className="rounded border p-2"
+    >
+      {Array.from(
+        { length: 10 },
+        (_, i) => currentYear - 5 + i
+      ).map((year) => (
+        <option key={year} value={year}>
+          {year} 年
+        </option>
+      ))}
+    </select>
 
-        <span className="font-bold text-green-700">
-          NT$ {item.amount.toLocaleString("zh-TW")}
-        </span>
-      </div>
-    ))}
+    <select
+      value={weeklyRankMonth}
+      onChange={(e) => {
+        setWeeklyRankMonth(Number(e.target.value));
+        setWeeklyRankWeek(1);
+      }}
+      className="rounded border p-2"
+    >
+      {Array.from({ length: 12 }, (_, i) => i + 1).map(
+        (month) => (
+          <option key={month} value={month}>
+            {month} 月
+          </option>
+        )
+      )}
+    </select>
+
+    <select
+      value={weeklyRankWeek}
+      onChange={(e) =>
+        setWeeklyRankWeek(Number(e.target.value))
+      }
+      className="rounded border p-2"
+    >
+      {Array.from(
+        {
+          length: getWeeksInMonth(
+            weeklyRankYear,
+            weeklyRankMonth
+          ),
+        },
+        (_, i) => i + 1
+      ).map((week) => (
+        <option key={week} value={week}>
+          第 {week} 週
+        </option>
+      ))}
+    </select>
   </div>
-)}
-      </div>
+
+  <p className="mb-3 text-sm text-gray-500">
+    查詢：{weeklyRankYear} 年 {weeklyRankMonth} 月第{" "}
+    {weeklyRankWeek} 週
+  </p>
+
+  {getHistoricalWeeklyRanking().length === 0 ? (
+    <p className="text-sm text-gray-500">
+      此週尚無已確認的捐款資料
+    </p>
+  ) : (
+    <div className="space-y-2">
+      {getHistoricalWeeklyRanking().map((item, index) => (
+        <div
+          key={item.name}
+          className="flex justify-between rounded-lg bg-gray-50 p-3"
+        >
+          <span>
+            {index + 1}. {item.name}
+          </span>
+
+          <span className="font-bold text-green-700">
+            NT$ {item.amount.toLocaleString("zh-TW")}
+          </span>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
       <div>
-        <h4 className="mb-3 font-bold">🏆 每月捐贈排行</h4>
+  <h4 className="mb-3 font-bold">🏆 每月捐贈排行</h4>
 
-{getDonationRanking("month").length === 0 ? (
-  <p className="text-sm text-gray-500">
-    本月尚無已確認的捐款資料
-  </p>
-) : (
-  <div className="space-y-2">
-    {getDonationRanking("month").map((item, index) => (
-      <div
-        key={item.name}
-        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
-      >
-        <span>
-          {index + 1}. {item.name}
-        </span>
+  <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <select
+      value={monthlyRankYear}
+      onChange={(e) =>
+        setMonthlyRankYear(Number(e.target.value))
+      }
+      className="rounded border p-2"
+    >
+      {Array.from(
+        { length: 10 },
+        (_, i) => currentYear - 5 + i
+      ).map((year) => (
+        <option key={year} value={year}>
+          {year} 年
+        </option>
+      ))}
+    </select>
 
-        <span className="font-bold text-green-700">
-          NT$ {item.amount.toLocaleString("zh-TW")}
-        </span>
-      </div>
-    ))}
+    <select
+      value={monthlyRankMonth}
+      onChange={(e) =>
+        setMonthlyRankMonth(Number(e.target.value))
+      }
+      className="rounded border p-2"
+    >
+      {Array.from({ length: 12 }, (_, i) => i + 1).map(
+        (month) => (
+          <option key={month} value={month}>
+            {month} 月
+          </option>
+        )
+      )}
+    </select>
   </div>
-)}
-      </div>
+
+  <p className="mb-3 text-sm text-gray-500">
+    查詢：{monthlyRankYear} 年 {monthlyRankMonth} 月
+  </p>
+
+  {getHistoricalMonthlyRanking().length === 0 ? (
+    <p className="text-sm text-gray-500">
+      此月份尚無已確認的捐款資料
+    </p>
+  ) : (
+    <div className="space-y-2">
+      {getHistoricalMonthlyRanking().map((item, index) => (
+        <div
+          key={item.name}
+          className="flex justify-between rounded-lg bg-gray-50 p-3"
+        >
+          <span>
+            {index + 1}. {item.name}
+          </span>
+
+          <span className="font-bold text-green-700">
+            NT$ {item.amount.toLocaleString("zh-TW")}
+          </span>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
     </div>
   </div>
 ) : (
