@@ -112,7 +112,7 @@ const [donationType, setDonationType] = useState<
 
 const donationAmount =
   donationType === "monthly"
-    ? donationUnits * 12000
+    ? 12000
     : donationUnits * 100;
 const [donationSubmitting, setDonationSubmitting] = useState(false);
 const [showEmptyAlert, setShowEmptyAlert] = useState(false);
@@ -1084,90 +1084,117 @@ if (!liff.isLoggedIn()) {
 )}
 
           <div className="mt-5 rounded-xl bg-gray-50 p-4">
+  {donationType === "free" ? (
+    <>
+      <p className="font-bold text-gray-800">
+        認捐單位
+      </p>
 
-            <p className="font-bold text-gray-800">
-              認捐單位
-            </p>
+      <p className="text-sm text-gray-500 mt-1">
+        每單位 NT$100
+      </p>
 
-            <p className="text-sm text-gray-500 mt-1">
-              {donationType === "free"
-                ? "每單位 NT$100"
-                : "每單位 NT$12,000，可支持一年"}
-            </p>
+      <div className="flex items-center justify-center gap-3 mt-4">
+        <button
+          type="button"
+          onClick={() =>
+            setDonationUnits((n) => Math.max(1, n - 1))
+          }
+          className="w-12 h-12 shrink-0 rounded-full border border-green-200 bg-white text-2xl font-bold text-green-700 active:bg-green-100"
+          aria-label="減少認捐單位"
+        >
+          −
+        </button>
 
-            {/* 認捐單位加減 */}
-            {/* 認捐單位加減與直接輸入 */}
-<div className="flex items-center justify-center gap-3 mt-4">
+        <input
+          type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          min={1}
+          max={10000}
+          step={1}
+          value={donationUnits}
+          onChange={(e) => {
+            const value = e.target.value;
 
-  {/* 減少認捐單位 */}
-  {donationType === "free" && (
-  <button
-    type="button"
-    onClick={() =>
-      setDonationUnits((n) => Math.max(1, n - 1))
-    }
-    className="w-12 h-12 shrink-0 rounded-full border border-green-200
-               bg-white text-2xl font-bold text-green-700
-               active:bg-green-100"
-    aria-label="減少認捐單位"
-  >
-    −
-  </button>
-)}
-  {/* 可直接輸入認捐單位 */}
-  <input
-    type="number"
-    inputMode="numeric"
-    pattern="[0-9]*"
-    min={1}
-    step={1}
-    value={donationUnits}
-    onChange={(e) => {
-      const value = e.target.value;
+            if (value === "") {
+              setDonationUnits(0);
+              return;
+            }
 
-      if (value === "") {
-        setDonationUnits(0);
-        return;
-      }
+            if (/^\d+$/.test(value)) {
+              setDonationUnits(Number(value));
+            }
+          }}
+          onBlur={() => {
+            setDonationUnits((n) =>
+              Number.isFinite(n) && n >= 1
+                ? Math.min(10000, Math.floor(n))
+                : 1
+            );
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          className="h-12 w-28 min-w-0 rounded-xl border-2 border-green-300 bg-white px-2 text-center text-2xl font-black text-green-700 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-200"
+          aria-label="直接輸入認捐單位"
+        />
 
-      if (/^\d+$/.test(value)) {
-        setDonationUnits(Number(value));
-      }
-    }}
-    onBlur={() => {
-      setDonationUnits((n) =>
-        Number.isFinite(n) && n >= 1
-          ? Math.floor(n)
-          : 1
-      );
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        e.currentTarget.blur();
-      }
-    }}
-    className="h-12 w-28 min-w-0 rounded-xl border-2
-               border-green-300 bg-white px-2
-               text-center text-2xl font-black text-green-700
-               outline-none focus:border-green-600
-               focus:ring-2 focus:ring-green-200"
-    aria-label="直接輸入認捐單位"
-  />
+        <button
+          type="button"
+          onClick={() =>
+            setDonationUnits((n) => Math.min(10000, n + 1))
+          }
+          className="w-12 h-12 shrink-0 rounded-full border border-green-200 bg-white text-2xl font-bold text-green-700 active:bg-green-100"
+          aria-label="增加認捐單位"
+        >
+          +
+        </button>
+      </div>
 
-  {/* 增加認捐單位 */}
-  {donationType === "free" && (
-  <button
-    type="button"
-    onClick={() => setDonationUnits((n) => n + 1)}
-    className="w-12 h-12 shrink-0 rounded-full border border-green-200
-               bg-white text-2xl font-bold text-green-700
-               active:bg-green-100"
-    aria-label="增加認捐單位"
-  >
-    +
-  </button>
-)}
-</div>
+      <p className="text-center mt-4 text-gray-700">
+        認捐金額：
+        <span className="text-2xl font-black text-orange-600">
+          NT${donationAmount.toLocaleString("en-US")}
+        </span>
+      </p>
+    </>
+  ) : (
+    <>
+      <p className="font-bold text-gray-800">
+        每月定期捐款
+      </p>
+
+      <p className="text-sm text-gray-500 mt-1">
+        固定一年，不可調整單位
+      </p>
+
+      <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-center">
+        <p className="text-sm text-gray-600">
+          一次轉帳金額
+        </p>
+
+        <p className="mt-2 text-3xl font-black text-orange-600">
+          NT$12,000
+        </p>
+
+        <p className="mt-2 text-sm leading-6 text-gray-700">
+          固定 12 個月，每月記錄 NT$1,000。
+          <br />
+          首月從捐款當日開始記錄，後續月份於每月 1 日記錄。
+        </p>
+      </div>
+
+      <p className="text-center mt-4 text-gray-700">
+        認捐金額：
+        <span className="text-2xl font-black text-orange-600">
+          NT$12,000
+        </span>
+      </p>
+    </>
+  )}
 
             {/* 認捐金額 */}
             <p className="text-center mt-4 text-gray-700">
