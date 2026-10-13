@@ -1335,13 +1335,13 @@ if (!liff.isLoggedIn()) {
                   </h3>
 
                   <p className="mt-3 text-sm leading-7 text-gray-700">
-                    收款戶名：待設定
+                    收款戶名：九斗休閒農場
                     <br />
-                    銀行名稱：待設定
+                    銀行名稱：台灣企銀(新屋)
                     <br />
-                    銀行代碼：待設定
+                    銀行代碼：050
                     <br />
-                    銀行帳號：待設定
+                    銀行帳號：31512019199
                   </p>
 
                   <div className="mt-4 border-t border-green-200 pt-4">

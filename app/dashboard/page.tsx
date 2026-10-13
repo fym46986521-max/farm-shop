@@ -85,6 +85,12 @@ export default function DashboardPage() {
   const [profit, setProfit] = useState(0);
   const [showOneHeart, setShowOneHeart] = useState(false);
   const [oneHeartTab, setOneHeartTab] = useState<"stats" | "records">("stats");
+  // 一菜一心：顧客認捐資料
+const [donations, setDonations] = useState<any[]>([]);
+const [donationsLoading, setDonationsLoading] = useState(false);
+const [donationPage, setDonationPage] = useState(1);
+
+const DONATIONS_PAGE_SIZE = 10;
   // 一菜一心：受捐助機構
 const [donationOrganizations, setDonationOrganizations] = useState<any[]>([]);
 const [selectedOrganization, setSelectedOrganization] = useState("");
@@ -131,6 +137,7 @@ const [savingDonationRecord, setSavingDonationRecord] = useState(false);
 
   fetchDonationOrganizations();
   fetchWeeklyDonationRecords();
+  fetchDonations();
 }, [showOneHeart]);
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
@@ -333,6 +340,92 @@ const handleSaveWeeklyDonation = async () => {
     );
   } finally {
     setSavingDonationRecord(false);
+  }
+};
+// 讀取顧客認捐資料，最新資料排最前面
+const fetchDonations = async () => {
+  setDonationsLoading(true);
+
+  try {
+    const snapshot = await getDocs(
+      collection(db, "donations")
+    );
+
+    const list = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    })) as any[];
+
+    list.sort((a, b) => {
+      const timeA =
+        a.createdAt?.toMillis?.() ??
+        (a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : 0);
+
+      const timeB =
+        b.createdAt?.toMillis?.() ??
+        (b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : 0);
+
+      return timeB - timeA;
+    });
+
+    setDonations(list);
+    setDonationPage(1);
+  } catch (error) {
+    console.error("讀取認捐資料失敗：", error);
+    alert("讀取認捐資料失敗，請檢查 Firebase 權限。");
+  } finally {
+    setDonationsLoading(false);
+  }
+};
+// 審核捐款：確認或取消確認
+const handleConfirmDonation = async (
+  donationId: string,
+  checked: boolean
+) => {
+  try {
+    await updateDoc(doc(db, "donations", donationId), {
+      status: checked ? "confirmed" : "pending",
+    });
+
+    setDonations((prev) =>
+      prev.map((item) =>
+        item.id === donationId
+          ? {
+              ...item,
+              status: checked ? "confirmed" : "pending",
+            }
+          : item
+      )
+    );
+  } catch (error) {
+    console.error("更新捐款狀態失敗：", error);
+    alert("更新失敗，請檢查 Firebase 權限。");
+  }
+};
+
+// 刪除捐款資料
+const handleDeleteDonation = async (donationId: string) => {
+  const confirmed = window.confirm(
+    "確定要刪除這筆認捐資料嗎？刪除後無法復原。"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await deleteDoc(doc(db, "donations", donationId));
+
+    setDonations((prev) =>
+      prev.filter((item) => item.id !== donationId)
+    );
+
+    alert("認捐資料已刪除。");
+  } catch (error) {
+    console.error("刪除認捐資料失敗：", error);
+    alert("刪除失敗，請檢查 Firebase 權限。");
   }
 };
   useEffect(() => {
@@ -1067,10 +1160,160 @@ if (detailFiles.length > 0) {
 
     <h4 className="mb-3 font-bold">每日捐贈名單</h4>
 
-    <p className="text-sm text-gray-500">
-      尚未串接 Firebase，下一步會讀取實際捐贈資料。
-    </p>
+{(() => {
+  const totalPages = Math.max(
+    1,
+    Math.ceil(donations.length / DONATIONS_PAGE_SIZE)
+  );
 
+  const startIndex =
+    (donationPage - 1) * DONATIONS_PAGE_SIZE;
+
+  const pageDonations = donations.slice(
+    startIndex,
+    startIndex + DONATIONS_PAGE_SIZE
+  );
+
+  return (
+    <div>
+      {donationsLoading ? (
+        <p className="py-6 text-center text-gray-500">
+          正在載入捐款資料……
+        </p>
+      ) : donations.length === 0 ? (
+        <p className="py-6 text-center text-gray-500">
+          目前尚無認捐資料。
+        </p>
+      ) : (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              共 {donations.length} 筆認捐資料
+            </p>
+
+            <p className="text-sm text-gray-600">
+              第 {donationPage} / {totalPages} 頁
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[850px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="border p-3">匯款審核</th>
+                  <th className="border p-3">捐款人</th>
+                  <th className="border p-3">聯絡電話</th>
+                  <th className="border p-3">認捐金額</th>
+                  <th className="border p-3">匯款末五碼</th>
+                  <th className="border p-3">捐款狀態</th>
+                  <th className="border p-3">操作</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {pageDonations.map((item: any) => {
+                  const isConfirmed =
+                    item.status === "confirmed";
+
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="border p-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isConfirmed}
+                          onChange={(event) =>
+                            handleConfirmDonation(
+                              item.id,
+                              event.target.checked
+                            )
+                          }
+                          aria-label={`審核 ${item.donorName || "捐款人"} 的捐款`}
+                          className="h-5 w-5 cursor-pointer"
+                        />
+                      </td>
+
+                      <td className="border p-3">
+                        {item.donorName || "未填寫"}
+                      </td>
+
+                      <td className="border p-3">
+                        {item.donorPhone || "未填寫"}
+                      </td>
+
+                      <td className="border p-3 font-bold">
+                        NT$ {Number(item.amount || 0).toLocaleString()}
+                      </td>
+
+                      <td className="border p-3">
+                        {item.donorAccountLast5 || "未填寫"}
+                      </td>
+
+                      <td className="border p-3">
+                        <span
+                          className={
+                            isConfirmed
+                              ? "rounded-full bg-green-100 px-3 py-1 text-green-700"
+                              : "rounded-full bg-yellow-100 px-3 py-1 text-yellow-800"
+                          }
+                        >
+                          {isConfirmed
+                            ? "已確認捐款成功"
+                            : "款項待確認中"}
+                        </span>
+                      </td>
+
+                      <td className="border p-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteDonation(item.id)
+                          }
+                          className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-2 font-bold text-white hover:bg-red-700"
+                        >
+                          🗑 刪除
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              disabled={donationPage <= 1}
+              onClick={() =>
+                setDonationPage((page) => Math.max(1, page - 1))
+              }
+              className="rounded-lg border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ← 上一頁
+            </button>
+
+            <span className="text-sm text-gray-600">
+              {donationPage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={donationPage >= totalPages}
+              onClick={() =>
+                setDonationPage((page) =>
+                  Math.min(totalPages, page + 1)
+                )
+              }
+              className="rounded-lg border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              下一頁 →
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+})()}
     <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
         <h4 className="mb-3 font-bold">🏆 每週捐贈排行</h4>
