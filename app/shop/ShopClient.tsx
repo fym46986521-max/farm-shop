@@ -1934,7 +1934,7 @@ if (!liff.isLoggedIn()) {
                 disabled={!record.receiptImageUrl}
                 onClick={() =>
                   setSelectedDonationImage({
-                    title: "🧾 捐贈收據",
+                    title: "🧾 當周捐贈感謝狀",
                     imageUrl: record.receiptImageUrl,
                   })
                 }

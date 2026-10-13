@@ -963,11 +963,24 @@ const handleConfirmDonation = async (
 
       const planSnapshot = await transaction.get(planRef);
 
-      if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
-        throw new Error(
-          "這筆定期捐款已存在月紀錄或排程，請先核對資料"
-        );
-      }
+      // 如果已經有首月紀錄及排程，代表之前建立過。
+// 重新勾選時直接恢復確認狀態，不重複建立資料。
+if (firstRecordSnapshot.exists() && planSnapshot.exists()) {
+  transaction.update(donationRef, {
+    status: "confirmed",
+    confirmedAt: Timestamp.now(),
+    monthlyPlanCreated: true,
+  });
+
+  return;
+}
+
+// 只存在其中一份資料時，不自動重建，避免覆蓋或重複記帳。
+if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
+  throw new Error(
+    "這筆定期捐款的月紀錄與排程不完整，請先核對 Firebase 資料"
+  );
+}
 
       // 下一次執行日期：下個月 1 日
       const nextMonth = new Date(
