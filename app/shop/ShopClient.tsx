@@ -180,9 +180,9 @@ const [donationTotalCount, setDonationTotalCount] =
 const [donationPage, setDonationPage] =
   useState(1);
 
-// Firestore 分頁游標
+// API 分頁游標：每個頁碼對應該頁開始前的游標
 const [donationPageCursors, setDonationPageCursors] =
-  useState<(QueryDocumentSnapshot<DocumentData> | null)[]>([null]);
+  useState<(string | null)[]>([null]);
 
 
 
@@ -380,6 +380,7 @@ if (liff.isLoggedIn()) {
 
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 // 載入捐款明細
+// 載入捐款明細
 const loadDonationRecords = async (
   page = 1,
   keyword = donationSearchKeyword,
@@ -389,11 +390,31 @@ const loadDonationRecords = async (
   setDonationRecordsError("");
 
   try {
+    const normalizedKeyword = keyword.trim();
+
+    // 搜尋條件改變時，從第一頁重新查詢。
+    const isNewSearch =
+      normalizedKeyword !== donationSearchKeyword.trim() ||
+      searchType !== donationSearchType;
+
+    const targetPage = isNewSearch ? 1 : page;
+
     const params = new URLSearchParams({
-      page: String(page),
-      keyword: keyword.trim(),
+      page: String(targetPage),
+      keyword: normalizedKeyword,
       searchType,
     });
+
+    // 搜尋模式不使用一般瀏覽的游標。
+    if (!normalizedKeyword && targetPage > 1) {
+      const cursor = donationPageCursors[targetPage - 1];
+
+      if (!cursor) {
+        throw new Error("找不到分頁游標，請重新載入捐款明細。");
+      }
+
+      params.set("cursor", cursor);
+    }
 
     const response = await fetch(
       `/api/donations?${params.toString()}`,
@@ -413,10 +434,25 @@ const loadDonationRecords = async (
 
     setDonationRecords(result.records || []);
     setDonationTotalCount(result.totalCount || 0);
-    setDonationPage(result.page || 1);
+    setDonationPage(result.page || targetPage);
 
-    // API 以頁碼分頁，這裡不需要 Firestore cursor
-    setDonationPageCursors([null]);
+    if (normalizedKeyword) {
+      // 搜尋模式仍由 API 依頁碼切頁。
+      setDonationPageCursors([null]);
+    } else {
+      setDonationPageCursors((previous) => {
+        const next = [...previous];
+
+        // 記錄下一頁開始時應使用的游標。
+        if (result.nextCursor) {
+          next[targetPage] = result.nextCursor;
+        } else {
+          next.length = targetPage + 1;
+        }
+
+        return next;
+      });
+    }
   } catch (error) {
     console.error("載入捐款明細失敗：", error);
 
@@ -428,10 +464,6 @@ const loadDonationRecords = async (
   } finally {
     setDonationRecordsLoading(false);
   }
-
-
-  
-
 };const submitDonation = async () => {
   if (donationSubmitting) return;
 
@@ -1218,7 +1250,7 @@ if (!liff.isLoggedIn()) {
         : "border-orange-200 bg-white text-orange-600"
     }`}
   >
-    💚 每月扣繳捐款
+    💚 每月定期捐款
   </button>
 </div>
 

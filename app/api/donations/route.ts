@@ -1,36 +1,22 @@
 import { NextResponse } from "next/server";
-import {
-  FieldValue,
-  Timestamp,
-} from "firebase-admin/firestore";
+import { FieldValue, FieldPath } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
-// GET：取得公益捐款明細
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-
-    const keyword = (
-      searchParams.get("keyword") || ""
-    ).trim();
-
-    const searchType =
-      searchParams.get("searchType") === "phone"
-        ? "phone"
-        : "name";
+    const { searchParams } = new URL(request.url);
 
     const page = Number(searchParams.get("page") || "1");
+    const keyword = (searchParams.get("keyword") || "").trim();
+    const searchType = searchParams.get("searchType") || "name";
+    const cursor = (searchParams.get("cursor") || "").trim();
 
-    if (
-      !Number.isSafeInteger(page) ||
-      page < 1 ||
-      page > 100000
-    ) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > 100000) {
       return NextResponse.json(
         { ok: false, error: "頁碼不正確" },
         { status: 400 }
@@ -39,87 +25,73 @@ export async function GET(req: Request) {
 
     if (keyword.length > 100) {
       return NextResponse.json(
-        { ok: false, error: "搜尋內容過長" },
+        { ok: false, error: "搜尋文字過長" },
+        { status: 400 }
+      );
+    }
+
+    if (!["name", "phone"].includes(searchType)) {
+      return NextResponse.json(
+        { ok: false, error: "搜尋類型不正確" },
         { status: 400 }
       );
     }
 
     const donationsRef = adminDb.collection("donations");
 
-    // 搜尋模式：保留原本的部分姓名／電話搜尋功能。
-    // 注意：目前搜尋仍會讀取全部資料，之後可另外優化。
+    // 搜尋模式：保留原本的姓名／電話子字串搜尋行為。
+    // 注意：此模式仍需讀取全部文件，資料量大時需要另外優化。
     if (keyword) {
       const snapshot = await donationsRef
         .orderBy("createdAt", "desc")
+        .orderBy(FieldPath.documentId(), "desc")
         .get();
 
-      let records = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const records = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
 
-        const createdAt = data.createdAt;
-
-        return {
-          id: doc.id,
-          donorName:
-            typeof data.donorName === "string"
-              ? data.donorName
-              : "善心人士",
-          donationType:
-            data.donationType === "monthly" ? "monthly" : "free",
-          _donorPhone:
-            typeof data.donorPhone === "string"
-              ? data.donorPhone
+          return {
+            id: doc.id,
+            donorName: data.donorName || "",
+            donationType: data.donationType || "free",
+            donorPhone: data.donorPhone
+              ? String(data.donorPhone).replace(
+                  /^(\d{4})\d+(\d{3})$/,
+                  "$1****$2"
+                )
               : "",
-          amount:
-            typeof data.amount === "number"
-              ? data.amount
-              : 0,
-          units:
-            typeof data.units === "number"
-              ? data.units
-              : 0,
-          status:
-            typeof data.status === "string"
-              ? data.status
-              : "pending",
-          receiptUrl:
-            typeof data.receiptUrl === "string" &&
-            /^https:\/\//i.test(data.receiptUrl)
-              ? data.receiptUrl
-              : "",
-          createdAt:
-            createdAt &&
-            typeof createdAt.toDate === "function"
-              ? createdAt.toDate().toISOString()
-              : null,
-        };
-      });
+            amount: Number(data.amount || 0),
+            units: Number(data.units || 0),
+            status: data.status || "pending",
+            receiptUrl:
+              typeof data.receiptUrl === "string" &&
+              /^https:\/\//i.test(data.receiptUrl)
+                ? data.receiptUrl
+                : "",
+            createdAt:
+              data.createdAt?.toDate?.()?.toISOString?.() || null,
+          };
+        })
+        .filter((record) => {
+          if (searchType === "phone") {
+            const originalPhone =
+              snapshot.docs
+                .find((doc) => doc.id === record.id)
+                ?.data().donorPhone || "";
 
-      if (searchType === "phone") {
-        records = records.filter((record) =>
-          record._donorPhone.includes(keyword)
-        );
-      } else {
-        records = records.filter((record) =>
-          record.donorName
-            .toLowerCase()
-            .includes(keyword.toLowerCase())
-        );
-      }
+            return String(originalPhone).includes(keyword);
+          }
+
+          return record.donorName.includes(keyword);
+        });
 
       const totalCount = records.length;
-      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
       const startIndex = (page - 1) * PAGE_SIZE;
-
-      const pageRecords = records
-        .slice(startIndex, startIndex + PAGE_SIZE)
-        .map(({ _donorPhone, ...record }) => ({
-          ...record,
-          donorPhone: _donorPhone.replace(
-            /^(\d{4})\d{3}(\d{3})$/,
-            "$1***$2"
-          ),
-        }));
+      const pageRecords = records.slice(
+        startIndex,
+        startIndex + PAGE_SIZE
+      );
 
       return NextResponse.json({
         ok: true,
@@ -127,106 +99,66 @@ export async function GET(req: Request) {
         totalCount,
         page,
         pageSize: PAGE_SIZE,
-        totalPages,
+        totalPages: Math.ceil(totalCount / PAGE_SIZE),
+        nextCursor: null,
+        hasMore: startIndex + PAGE_SIZE < totalCount,
       });
     }
 
-    // 無搜尋關鍵字：直接在 Firestore 分頁，
-    // 不再一次下載整個 donations 集合。
-    const countSnapshot = await donationsRef.count().get();
-    const totalCount = countSnapshot.data().count;
-    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-    if (totalCount === 0 || page > totalPages) {
-      return NextResponse.json({
-        ok: true,
-        records: [],
-        totalCount,
-        page,
-        pageSize: PAGE_SIZE,
-        totalPages,
-      });
-    }
-
-    let pageQuery = donationsRef
+    // 一般瀏覽：真正使用 Firestore 游標分頁。
+    let query = donationsRef
       .orderBy("createdAt", "desc")
-      .limit(PAGE_SIZE);
+      .orderBy(FieldPath.documentId(), "desc");
 
-    // 只讀取前面頁數所需的文件，避免下載整個集合。
-    // 適合目前規模不大、頁數有限的捐款紀錄。
-    if (page > 1) {
-      const cursorSnapshot = await donationsRef
-        .orderBy("createdAt", "desc")
-        .limit((page - 1) * PAGE_SIZE)
-        .get();
+    if (cursor) {
+      const cursorSnapshot = await donationsRef.doc(cursor).get();
 
-      if (cursorSnapshot.empty) {
-        return NextResponse.json({
-          ok: true,
-          records: [],
-          totalCount,
-          page,
-          pageSize: PAGE_SIZE,
-          totalPages,
-        });
+      if (!cursorSnapshot.exists) {
+        return NextResponse.json(
+          { ok: false, error: "分頁游標不存在，請重新載入" },
+          { status: 400 }
+        );
       }
 
-      const lastDoc =
-        cursorSnapshot.docs[cursorSnapshot.docs.length - 1];
-
-      pageQuery = donationsRef
-        .orderBy("createdAt", "desc")
-        .startAfter(lastDoc)
-        .limit(PAGE_SIZE);
+      query = query.startAfter(cursorSnapshot);
     }
 
-    const snapshot = await pageQuery.get();
+    const [countSnapshot, pageSnapshot] = await Promise.all([
+      donationsRef.count().get(),
+      query.limit(PAGE_SIZE + 1).get(),
+    ]);
 
-    const records = snapshot.docs.map((doc) => {
+    const hasMore = pageSnapshot.docs.length > PAGE_SIZE;
+    const visibleDocs = pageSnapshot.docs.slice(0, PAGE_SIZE);
+    const lastDoc = visibleDocs[visibleDocs.length - 1];
+
+    const records = visibleDocs.map((doc) => {
       const data = doc.data();
-      const createdAt = data.createdAt;
-
-      const phone =
-        typeof data.donorPhone === "string"
-          ? data.donorPhone
-          : "";
 
       return {
         id: doc.id,
-        donorName:
-          typeof data.donorName === "string"
-            ? data.donorName
-            : "善心人士",
-        donationType:
-          data.donationType === "monthly" ? "monthly" : "free",
-        donorPhone: phone.replace(
-          /^(\d{4})\d{3}(\d{3})$/,
-          "$1***$2"
-        ),
-        amount:
-          typeof data.amount === "number"
-            ? data.amount
-            : 0,
-        units:
-          typeof data.units === "number"
-            ? data.units
-            : 0,
-        status:
-          typeof data.status === "string"
-            ? data.status
-            : "pending",
+        donorName: data.donorName || "",
+        donationType: data.donationType || "free",
+        donorPhone: data.donorPhone
+          ? String(data.donorPhone).replace(
+              /^(\d{4})\d+(\d{3})$/,
+              "$1****$2"
+            )
+          : "",
+        amount: Number(data.amount || 0),
+        units: Number(data.units || 0),
+        status: data.status || "pending",
         receiptUrl:
           typeof data.receiptUrl === "string" &&
           /^https:\/\//i.test(data.receiptUrl)
             ? data.receiptUrl
             : "",
         createdAt:
-          createdAt &&
-          typeof createdAt.toDate === "function"
-            ? createdAt.toDate().toISOString()
-            : null,
+          data.createdAt?.toDate?.()?.toISOString?.() || null,
       };
     });
+
+    const totalCount = countSnapshot.data().count;
 
     return NextResponse.json({
       ok: true,
@@ -234,16 +166,15 @@ export async function GET(req: Request) {
       totalCount,
       page,
       pageSize: PAGE_SIZE,
-      totalPages,
+      totalPages: Math.ceil(totalCount / PAGE_SIZE),
+      nextCursor: hasMore && lastDoc ? lastDoc.id : null,
+      hasMore,
     });
   } catch (error) {
-    console.error("讀取公益捐款明細失敗：", error);
+    console.error("載入捐款明細失敗：", error);
 
     return NextResponse.json(
-      {
-        ok: false,
-        error: "捐款紀錄載入失敗，請稍後再試。",
-      },
+      { ok: false, error: "捐款紀錄載入失敗，請稍後再試" },
       { status: 500 }
     );
   }
