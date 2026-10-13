@@ -92,7 +92,20 @@ const [showDonationModal, setShowDonationModal] = useState(false);
 const [showDonationRecords, setShowDonationRecords] = useState(false);
 // 一菜一心：農場實際捐贈紀錄
 const [weeklyDonationRecords, setWeeklyDonationRecords] = useState<any[]>([]);
+// 每週捐贈紀錄：Firestore 分頁
+const WEEKLY_PAGE_SIZE = 10;
+
+const [weeklyDonationPage, setWeeklyDonationPage] = useState(1);
+
+const [weeklyTotalPages, setWeeklyTotalPages] = useState(1);
+
 const [weeklyDonationLoading, setWeeklyDonationLoading] = useState(false);
+
+// 記錄每一頁最後一筆文件，供 Firestore 下一頁查詢使用
+const [weeklyPageCursors, setWeeklyPageCursors] = useState<
+  (QueryDocumentSnapshot<DocumentData> | null)[]
+>([null]);
+
 const [selectedWeeklyImage, setSelectedWeeklyImage] = useState<string | null>(null);
 // 公益明細彈窗分頁
 const [donationRecordsTab, setDonationRecordsTab] = useState<
@@ -132,6 +145,15 @@ const DONATION_PAGE_SIZE = 20;
 
 const [donationRecords, setDonationRecords] =
   useState<any[]>([]);
+ 
+
+
+
+// 目前頁面要顯示的紀錄
+const paginatedWeeklyDonationRecords = weeklyDonationRecords.slice(
+  (weeklyDonationPage - 1) * WEEKLY_PAGE_SIZE,
+  weeklyDonationPage * WEEKLY_PAGE_SIZE
+);
 // 定期捐款方案
 const [monthlyDonationPlans, setMonthlyDonationPlans] =
   useState<any[]>([]);
@@ -490,36 +512,125 @@ const loadDonationRecords = async (
     setDonationSubmitting(false);
   }
 };
-// 載入農場實際捐贈紀錄
-const loadWeeklyDonationRecords = async () => {
+// 載入農場實際捐贈紀錄：Firestore 真正分頁
+const loadWeeklyDonationRecords = async (targetPage: number = 1) => {
   setWeeklyDonationLoading(true);
 
   try {
-    const snapshot = await getDocs(
+    // 取得總筆數，不下載所有捐贈紀錄
+    const countSnapshot = await getCountFromServer(
       collection(db, "weeklyDonationRecords")
     );
+
+    const totalCount = countSnapshot.data().count;
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(totalCount / WEEKLY_PAGE_SIZE)
+    );
+
+    setWeeklyTotalPages(totalPages);
+
+    // 避免切換到不存在的頁數
+    const safePage = Math.min(
+      Math.max(1, targetPage),
+      totalPages
+    );
+
+    setWeeklyDonationPage(safePage);
+
+    if (totalCount === 0) {
+      setWeeklyDonationRecords([]);
+      setWeeklyPageCursors([null]);
+      return;
+    }
+
+    // 以捐贈日期由新到舊排序
+    // donationDate 格式應為 YYYY-MM-DD
+    const baseQuery = query(
+      collection(db, "weeklyDonationRecords"),
+      orderBy("donationDate", "desc"),
+      orderBy("createdAt", "desc")
+    );
+
+    // 取得目前頁數所需的游標
+    let cursor = weeklyPageCursors[safePage - 1] ?? null;
+
+    // 如果尚未建立目標頁的游標，逐頁取得游標
+    if (safePage > 1 && !cursor) {
+      let previousCursor =
+        weeklyPageCursors[weeklyPageCursors.length - 1] ?? null;
+
+      let currentCursorPage = weeklyPageCursors.length;
+
+      while (currentCursorPage < safePage) {
+        let cursorQuery = query(
+          baseQuery,
+          limit(WEEKLY_PAGE_SIZE)
+        );
+
+        if (previousCursor) {
+          cursorQuery = query(
+            baseQuery,
+            startAfter(previousCursor),
+            limit(WEEKLY_PAGE_SIZE)
+          );
+        }
+
+        const cursorSnapshot = await getDocs(cursorQuery);
+
+        if (cursorSnapshot.empty) {
+          break;
+        }
+
+        previousCursor =
+          cursorSnapshot.docs[cursorSnapshot.docs.length - 1];
+
+        currentCursorPage += 1;
+
+        setWeeklyPageCursors((prev) => {
+          const next = [...prev];
+          next[currentCursorPage - 1] = previousCursor;
+          return next;
+        });
+      }
+
+      cursor = previousCursor;
+    }
+
+    // 查詢目前頁面的 10 筆資料
+    let pageQuery = query(
+      baseQuery,
+      limit(WEEKLY_PAGE_SIZE)
+    );
+
+    if (safePage > 1 && cursor) {
+      pageQuery = query(
+        baseQuery,
+        startAfter(cursor),
+        limit(WEEKLY_PAGE_SIZE)
+      );
+    }
+
+    const snapshot = await getDocs(pageQuery);
 
     const records = snapshot.docs.map((item) => ({
       id: item.id,
       ...item.data(),
     }));
 
-    // 最新捐贈日期排在最前面
-    records.sort((a: any, b: any) => {
-      const dateA = String(a.donationDate || "");
-      const dateB = String(b.donationDate || "");
-
-      if (dateA !== dateB) {
-        return dateB.localeCompare(dateA);
-      }
-
-      return (
-        (b.createdAt?.toMillis?.() || 0) -
-        (a.createdAt?.toMillis?.() || 0)
-      );
-    });
-
     setWeeklyDonationRecords(records);
+
+    // 保存目前頁面的最後一筆文件，供下一頁使用
+    if (!snapshot.empty) {
+      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+
+      setWeeklyPageCursors((prev) => {
+        const next = [...prev];
+        next[safePage] = lastDoc;
+        return next;
+      });
+    }
   } catch (error) {
     console.error("載入農場實際捐贈紀錄失敗：", error);
   } finally {
@@ -529,7 +640,8 @@ const loadWeeklyDonationRecords = async () => {
 // 開啟公益捐款明細彈窗的「每週捐贈紀錄」分頁時，重新載入資料
 useEffect(() => {
   if (showDonationRecords && donationRecordsTab === "weekly") {
-    loadWeeklyDonationRecords();
+    setWeeklyDonationPage(1);
+    loadWeeklyDonationRecords(1);
   }
 }, [showDonationRecords, donationRecordsTab]);
 // 載入每月定期捐款資料
@@ -1952,18 +2064,28 @@ if (!liff.isLoggedIn()) {
   </div>
 )}
 {/* 查看捐款收據 */}
-{record.receiptUrl ? (
+{/* 捐款收據按鈕 */}
+{record.receiptUrl &&
+(
+  record.donationType !== "monthly" ||
+  Number(record.amount) === 12000
+) ? (
   <button
     type="button"
-    onClick={() => setSelectedDonationReceipt(record.receiptUrl)}
-    className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 font-bold text-green-700 transition hover:bg-green-100"
+    onClick={() =>
+      setSelectedDonationReceipt(record.receiptUrl)
+    }
+    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 font-bold text-green-700 shadow-sm transition hover:border-green-300 hover:from-green-100 hover:to-emerald-100 active:scale-[0.99]"
   >
     🧾 查看捐款收據
   </button>
 ) : (
-  <div className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-center text-sm text-gray-500">
-    🧾 收據尚未提供
-  </div>
+  record.donationType === "monthly" &&
+  Number(record.amount) !== 12000 ? null : (
+    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+      🧾 收據尚未提供
+    </div>
+  )
 )}
 {/* 查看捐款收據 */}
 
@@ -2065,7 +2187,12 @@ if (!liff.isLoggedIn()) {
       </div>
     ) : (
       <div className="grid grid-cols-1 gap-5">
-        {weeklyDonationRecords.map((record) => (
+        {weeklyDonationRecords
+  .slice(
+    (weeklyDonationPage - 1) * WEEKLY_PAGE_SIZE,
+    weeklyDonationPage * WEEKLY_PAGE_SIZE
+  )
+  .map((record) => (
           <article
             key={record.id}
             className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm"
@@ -2119,6 +2246,52 @@ if (!liff.isLoggedIn()) {
         ))}
       </div>
     )}
+    {/* 每週捐贈紀錄分頁 */}
+{weeklyTotalPages > 1 && (
+  <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+    <p className="mb-3 text-center text-sm text-gray-500">
+      第 {weeklyDonationPage} / {weeklyTotalPages} 頁
+    </p>
+
+    <div className="grid grid-cols-2 gap-3">
+      {/* 上一頁 */}
+      <button
+        type="button"
+        disabled={
+          weeklyDonationPage <= 1 || weeklyDonationLoading
+        }
+        onClick={() =>
+          void loadWeeklyDonationRecords(weeklyDonationPage - 1)
+        }
+        className="rounded-xl border border-green-200 bg-white px-4 py-3 font-bold text-green-700 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        ← 上一頁
+      </button>
+
+      {/* 下一頁 */}
+      <button
+        type="button"
+        disabled={
+          weeklyDonationPage >= weeklyTotalPages ||
+          weeklyDonationLoading
+        }
+        onClick={() =>
+          void loadWeeklyDonationRecords(weeklyDonationPage + 1)
+        }
+        className="rounded-xl bg-green-700 px-4 py-3 font-bold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        下一頁 →
+      </button>
+    </div>
+
+    {/* 載入提示 */}
+    {weeklyDonationLoading && (
+      <p className="mt-3 text-center text-sm text-gray-500">
+        正在載入捐贈紀錄……
+      </p>
+    )}
+  </div>
+)}
   </div>
 )}
 
