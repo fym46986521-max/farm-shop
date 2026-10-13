@@ -132,7 +132,17 @@ const DONATION_PAGE_SIZE = 20;
 
 const [donationRecords, setDonationRecords] =
   useState<any[]>([]);
+// 定期捐款方案
+const [monthlyDonationPlans, setMonthlyDonationPlans] =
+  useState<any[]>([]);
 
+// 定期捐款每月紀錄
+const [monthlyDonationRecords, setMonthlyDonationRecords] =
+  useState<any[]>([]);
+
+// 定期捐款資料載入狀態
+const [monthlyDonationLoading, setMonthlyDonationLoading] =
+  useState(false);
 const [donationRecordsLoading, setDonationRecordsLoading] =
   useState(false);
 
@@ -169,7 +179,35 @@ const [donationPageCursors, setDonationPageCursors] =
   // ⭐⭐⭐ 加這行（存快取）
   localStorage.setItem("products", JSON.stringify(list));
 };
+// 載入定期捐款方案及每月記錄
+const loadMonthlyDonationData = async () => {
+  setMonthlyDonationLoading(true);
 
+  try {
+    const [plansSnapshot, recordsSnapshot] = await Promise.all([
+      getDocs(collection(db, "monthlyDonationPlans")),
+      getDocs(collection(db, "monthlyDonationRecords")),
+    ]);
+
+    const plans = plansSnapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    const records = recordsSnapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    setMonthlyDonationPlans(plans);
+    setMonthlyDonationRecords(records);
+  } catch (error) {
+    console.error("載入定期捐款資料失敗：", error);
+    alert("定期捐款資料載入失敗，請稍後再試。");
+  } finally {
+    setMonthlyDonationLoading(false);
+  }
+};
   
 
 useEffect(() => {
@@ -491,6 +529,12 @@ useEffect(() => {
     loadWeeklyDonationRecords();
   }
 }, [showDonationRecords, donationRecordsTab]);
+// 載入每月定期捐款資料
+useEffect(() => {
+  if (showDonationRecords) {
+    loadMonthlyDonationData();
+  }
+}, [showDonationRecords]);
   return (
     
     <div
