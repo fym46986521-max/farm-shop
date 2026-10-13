@@ -1047,7 +1047,52 @@ if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
     );
   }
 };
+// 上傳捐款收據
+const handleUploadDonationReceipt = async (
+  donationId: string,
+  file: File
+) => {
+  if (!file.type.startsWith("image/")) {
+    alert("請選擇圖片格式的收據。");
+    return;
+  }
 
+  if (file.size > 10 * 1024 * 1024) {
+    alert("收據圖片不能超過 10 MB。");
+    return;
+  }
+
+  try {
+    // 上傳圖片至 Firebase Storage
+    const receiptUrl = await uploadDonationImage(
+  file,
+  "receipts"
+);
+
+    if (!receiptUrl) {
+      throw new Error("沒有取得收據圖片網址");
+    }
+
+    // 將圖片網址儲存至該筆捐款
+    await updateDoc(doc(db, "donations", donationId), {
+      receiptUrl,
+    });
+
+    // 更新後台畫面
+    setDonations((prev: any[]) =>
+      prev.map((item) =>
+        item.id === donationId
+          ? { ...item, receiptUrl }
+          : item
+      )
+    );
+
+    alert("收據上傳成功！");
+  } catch (error) {
+    console.error("上傳捐款收據失敗：", error);
+    alert("收據上傳失敗，請檢查 Firebase Storage 與 Firestore 權限。");
+  }
+};
 // 刪除捐款資料
 const handleDeleteDonation = async (donationId: string) => {
   const confirmed = window.confirm(
@@ -1890,30 +1935,48 @@ if (detailFiles.length > 0) {
                       </td>
 
                       <td className="border p-3">
-                        <span
-                          className={
-                            isConfirmed
-                              ? "rounded-full bg-green-100 px-3 py-1 text-green-700"
-                              : "rounded-full bg-yellow-100 px-3 py-1 text-yellow-800"
-                          }
-                        >
-                          {isConfirmed
-                            ? "已確認捐款成功"
-                            : "款項待確認中"}
-                        </span>
-                      </td>
+  <div className="flex flex-col gap-2">
+    {/* 上傳收據 */}
+    <label className="cursor-pointer whitespace-nowrap rounded-lg bg-blue-600 px-3 py-2 text-center font-bold text-white hover:bg-blue-700">
+      🧾 {item.receiptUrl ? "更換收據" : "上傳收據"}
 
-                      <td className="border p-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteDonation(item.id)
-                          }
-                          className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-2 font-bold text-white hover:bg-red-700"
-                        >
-                          🗑 刪除
-                        </button>
-                      </td>
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+
+          if (file) {
+            await handleUploadDonationReceipt(item.id, file);
+          }
+
+          event.target.value = "";
+        }}
+      />
+    </label>
+
+    {/* 預覽收據 */}
+    {item.receiptUrl && (
+      <button
+        type="button"
+        onClick={() => window.open(item.receiptUrl, "_blank")}
+        className="whitespace-nowrap rounded-lg border border-blue-200 px-3 py-2 font-bold text-blue-700 hover:bg-blue-50"
+      >
+        👁 預覽收據
+      </button>
+    )}
+
+    {/* 原本的刪除功能 */}
+    <button
+      type="button"
+      onClick={() => handleDeleteDonation(item.id)}
+      className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-2 font-bold text-white hover:bg-red-700"
+    >
+      🗑 刪除
+    </button>
+  </div>
+</td>
                     </tr>
                   );
                 })}
