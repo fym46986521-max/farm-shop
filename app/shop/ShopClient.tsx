@@ -1746,8 +1746,16 @@ if (!liff.isLoggedIn()) {
                       </div>
                     </div>
 
-                    <span className="shrink-0 rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-                      公益捐款
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                      record.donationType === "monthly"
+                      ? "bg-blue-50 text-blue-700"
+                      : "bg-green-50 text-green-700"
+                     }`}
+                      >
+                      {record.donationType === "monthly"
+                      ? "每月定期捐款"
+                      : "自由捐款"}
                     </span>
 
                   </div>
