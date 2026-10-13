@@ -368,7 +368,7 @@ const fetchDonations = async () => {
       id: item.id,
       ...item.data(),
     })) as any[];
-
+console.log("認捐資料欄位檢查：", list);
     list.sort((a, b) => {
       const timeA =
         a.createdAt?.toMillis?.() ??
@@ -1621,15 +1621,7 @@ if (detailFiles.length > 0) {
 >
   {savingDonationRecord ? "正在儲存..." : "儲存捐贈紀錄"}
 </button>
-  <button
-  type="button"
-  onClick={handleSaveWeeklyDonation}
-  disabled={savingDonationRecord}
-  className="mt-6 rounded bg-green-600 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
->
-  {savingDonationRecord ? "正在儲存..." : "儲存捐贈紀錄"}
-</button>
-
+  
 {/* 每週捐贈紀錄列表 */}
 <div className="mt-8 border-t pt-6">
   <h4 className="mb-4 text-lg font-bold">
