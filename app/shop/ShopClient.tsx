@@ -1691,18 +1691,33 @@ if (!liff.isLoggedIn()) {
                     </p>
                   </div>
                   {/* 金額 */}
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-500">
-                      💰 捐款金額
-                    </p>
+<div className="mt-4">
+  <p className="text-sm text-gray-500">
+    💰 捐款金額
+  </p>
 
-                    <p className="mt-1 text-2xl font-black text-orange-600">
-                      NT$
-                      {Number(
-                        record.amount ?? 0
-                      ).toLocaleString()}
-                    </p>
-                  </div>
+  <p className="mt-1 text-2xl font-black text-orange-600">
+    NT$
+    {Number(record.amount ?? 0).toLocaleString()}
+  </p>
+</div>
+
+{/* 捐款狀態 */}
+<div className="mt-4">
+  <p className="text-sm text-gray-500">
+    📋 捐款狀態
+  </p>
+
+  {record.status === "confirmed" ? (
+    <span className="mt-2 inline-flex items-center rounded-full bg-green-100 px-3 py-2 text-sm font-bold text-green-700">
+      ✓ 已確認捐款成功
+    </span>
+  ) : (
+    <span className="mt-2 inline-flex items-center rounded-full bg-yellow-100 px-3 py-2 text-sm font-bold text-yellow-700">
+      ⏳ 款項待確認中
+    </span>
+  )}
+</div>
                 </div>
               ))}
 
