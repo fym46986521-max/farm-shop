@@ -1678,45 +1678,48 @@ if (!liff.isLoggedIn()) {
 
                   </div>
 
-                  <div className="my-4 border-t border-dashed border-gray-200" />
+                  {/* 捐款人、金額、狀態：同一排 */}
+<div className="mt-4 grid grid-cols-3 items-center gap-2 rounded-xl bg-gray-50 p-3">
 
-                  {/* 捐款人 */}
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      👤 捐款人
-                    </p>
+  {/* 捐款人 */}
+  <div className="min-w-0">
+    <p className="text-xs text-gray-500">
+      👤 捐款人
+    </p>
 
-                    <p className="mt-1 break-words font-bold text-gray-900">
-                      {record.donorName || "未提供姓名"}
-                    </p>
-                  </div>
-                  {/* 金額 */}
-<div className="mt-4">
-  <p className="text-sm text-gray-500">
-    💰 捐款金額
-  </p>
+    <p className="mt-1 truncate text-sm font-bold text-gray-900">
+      {record.donorName || "未提供姓名"}
+    </p>
+  </div>
 
-  <p className="mt-1 text-2xl font-black text-orange-600">
-    NT$
-    {Number(record.amount ?? 0).toLocaleString()}
-  </p>
-</div>
+  {/* 捐款金額 */}
+  <div className="min-w-0 text-center">
+    <p className="text-xs text-gray-500">
+      💰 金額
+    </p>
 
-{/* 捐款狀態 */}
-<div className="mt-4">
-  <p className="text-sm text-gray-500">
-    📋 捐款狀態
-  </p>
+    <p className="mt-1 whitespace-nowrap text-sm font-black text-orange-600">
+      NT${Number(record.amount ?? 0).toLocaleString()}
+    </p>
+  </div>
 
-  {record.status === "confirmed" ? (
-    <span className="mt-2 inline-flex items-center rounded-full bg-green-100 px-3 py-2 text-sm font-bold text-green-700">
-      ✓ 已確認捐款成功
-    </span>
-  ) : (
-    <span className="mt-2 inline-flex items-center rounded-full bg-yellow-100 px-3 py-2 text-sm font-bold text-yellow-700">
-      ⏳ 款項待確認中
-    </span>
-  )}
+  {/* 捐款狀態 */}
+  <div className="min-w-0 text-right">
+    <p className="text-xs text-gray-500">
+      📋 狀態
+    </p>
+
+    {record.status === "confirmed" ? (
+      <span className="mt-1 inline-block whitespace-nowrap rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-700">
+        已確認
+      </span>
+    ) : (
+      <span className="mt-1 inline-block whitespace-nowrap rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-700">
+        待確認
+      </span>
+    )}
+  </div>
+
 </div>
                 </div>
               ))}

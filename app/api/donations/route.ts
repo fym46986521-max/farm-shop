@@ -44,65 +44,55 @@ export async function GET(req: Request) {
       );
     }
 
-    // 從 Firebase Admin SDK 讀取資料
-    const snapshot = await adminDb
-      .collection("donations")
-      .orderBy("createdAt", "desc")
-      .get();
+    const donationsRef = adminDb.collection("donations");
 
-    // 先整理資料，轉換 Firebase Timestamp
-    let records = snapshot.docs.map((doc) => {
-      const data = doc.data();
+    // 搜尋模式：保留原本的部分姓名／電話搜尋功能。
+    // 注意：目前搜尋仍會讀取全部資料，之後可另外優化。
+    if (keyword) {
+      const snapshot = await donationsRef
+        .orderBy("createdAt", "desc")
+        .get();
 
-      const createdAt = data.createdAt;
+      let records = snapshot.docs.map((doc) => {
+        const data = doc.data();
 
-      return {
-        id: doc.id,
+        const createdAt = data.createdAt;
 
-        donorName:
-          typeof data.donorName === "string"
-            ? data.donorName
-            : "善心人士",
-
-        // 完整電話只在伺服器內用於搜尋
-        _donorPhone:
-          typeof data.donorPhone === "string"
-            ? data.donorPhone
-            : "",
-
-        amount:
-          typeof data.amount === "number"
-            ? data.amount
-            : 0,
-
-        units:
-          typeof data.units === "number"
-            ? data.units
-            : 0,
-
-        status:
-          typeof data.status === "string"
-            ? data.status
-            : "pending",
-
-        receiptUrl:
-          typeof data.receiptUrl === "string" &&
-          /^https:\/\//i.test(data.receiptUrl)
-            ? data.receiptUrl
-            : "",
-
-        createdAt:
-          createdAt instanceof Timestamp
-            ? createdAt.toDate().toISOString()
-            : createdAt &&
-                typeof createdAt.toDate === "function"
+        return {
+          id: doc.id,
+          donorName:
+            typeof data.donorName === "string"
+              ? data.donorName
+              : "善心人士",
+          _donorPhone:
+            typeof data.donorPhone === "string"
+              ? data.donorPhone
+              : "",
+          amount:
+            typeof data.amount === "number"
+              ? data.amount
+              : 0,
+          units:
+            typeof data.units === "number"
+              ? data.units
+              : 0,
+          status:
+            typeof data.status === "string"
+              ? data.status
+              : "pending",
+          receiptUrl:
+            typeof data.receiptUrl === "string" &&
+            /^https:\/\//i.test(data.receiptUrl)
+              ? data.receiptUrl
+              : "",
+          createdAt:
+            createdAt &&
+            typeof createdAt.toDate === "function"
               ? createdAt.toDate().toISOString()
               : null,
-      };
-    });
+        };
+      });
 
-    // 姓名或電話搜尋
-    if (keyword) {
       if (searchType === "phone") {
         records = records.filter((record) =>
           record._donorPhone.includes(keyword)
@@ -114,31 +104,129 @@ export async function GET(req: Request) {
             .includes(keyword.toLowerCase())
         );
       }
+
+      const totalCount = records.length;
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+      const startIndex = (page - 1) * PAGE_SIZE;
+
+      const pageRecords = records
+        .slice(startIndex, startIndex + PAGE_SIZE)
+        .map(({ _donorPhone, ...record }) => ({
+          ...record,
+          donorPhone: _donorPhone.replace(
+            /^(\d{4})\d{3}(\d{3})$/,
+            "$1***$2"
+          ),
+        }));
+
+      return NextResponse.json({
+        ok: true,
+        records: pageRecords,
+        totalCount,
+        page,
+        pageSize: PAGE_SIZE,
+        totalPages,
+      });
     }
 
-    const totalCount = records.length;
+    // 無搜尋關鍵字：直接在 Firestore 分頁，
+    // 不再一次下載整個 donations 集合。
+    const countSnapshot = await donationsRef.count().get();
+    const totalCount = countSnapshot.data().count;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-    const totalPages = Math.ceil(
-      totalCount / PAGE_SIZE
-    );
+    if (totalCount === 0 || page > totalPages) {
+      return NextResponse.json({
+        ok: true,
+        records: [],
+        totalCount,
+        page,
+        pageSize: PAGE_SIZE,
+        totalPages,
+      });
+    }
 
-    const startIndex = (page - 1) * PAGE_SIZE;
+    let pageQuery = donationsRef
+      .orderBy("createdAt", "desc")
+      .limit(PAGE_SIZE);
 
-    const pageRecords = records
-      .slice(startIndex, startIndex + PAGE_SIZE)
-      .map(({ _donorPhone, ...record }) => ({
-        ...record,
+    // 只讀取前面頁數所需的文件，避免下載整個集合。
+    // 適合目前規模不大、頁數有限的捐款紀錄。
+    if (page > 1) {
+      const cursorSnapshot = await donationsRef
+        .orderBy("createdAt", "desc")
+        .limit((page - 1) * PAGE_SIZE)
+        .get();
 
-        // 公開明細不回傳完整電話
-        donorPhone: _donorPhone.replace(
+      if (cursorSnapshot.empty) {
+        return NextResponse.json({
+          ok: true,
+          records: [],
+          totalCount,
+          page,
+          pageSize: PAGE_SIZE,
+          totalPages,
+        });
+      }
+
+      const lastDoc =
+        cursorSnapshot.docs[cursorSnapshot.docs.length - 1];
+
+      pageQuery = donationsRef
+        .orderBy("createdAt", "desc")
+        .startAfter(lastDoc)
+        .limit(PAGE_SIZE);
+    }
+
+    const snapshot = await pageQuery.get();
+
+    const records = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt;
+
+      const phone =
+        typeof data.donorPhone === "string"
+          ? data.donorPhone
+          : "";
+
+      return {
+        id: doc.id,
+        donorName:
+          typeof data.donorName === "string"
+            ? data.donorName
+            : "善心人士",
+        donorPhone: phone.replace(
           /^(\d{4})\d{3}(\d{3})$/,
           "$1***$2"
         ),
-      }));
+        amount:
+          typeof data.amount === "number"
+            ? data.amount
+            : 0,
+        units:
+          typeof data.units === "number"
+            ? data.units
+            : 0,
+        status:
+          typeof data.status === "string"
+            ? data.status
+            : "pending",
+        receiptUrl:
+          typeof data.receiptUrl === "string" &&
+          /^https:\/\//i.test(data.receiptUrl)
+            ? data.receiptUrl
+            : "",
+        createdAt:
+          createdAt &&
+          typeof createdAt.toDate === "function"
+            ? createdAt.toDate().toISOString()
+            : null,
+      };
+    });
 
     return NextResponse.json({
       ok: true,
-      records: pageRecords,
+      records,
       totalCount,
       page,
       pageSize: PAGE_SIZE,
