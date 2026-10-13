@@ -1767,7 +1767,177 @@ if (detailFiles.length > 0) {
     );
   })()}
 </div>
+{/* 每週捐贈紀錄編輯視窗 */}
+{selectedWeeklyRecord && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-xl font-bold text-green-700">
+          編輯每週捐贈紀錄
+        </h3>
 
+        <button
+          type="button"
+          onClick={() => setSelectedWeeklyRecord(null)}
+          className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
+        >
+          關閉 ✕
+        </button>
+      </div>
+
+      {/* 捐贈日期 */}
+      <div className="mb-4">
+        <label className="mb-2 block font-medium">
+          捐贈日期
+        </label>
+
+        <input
+          type="date"
+          value={editingWeeklyDate}
+          onChange={(e) => setEditingWeeklyDate(e.target.value)}
+          className="w-full rounded-lg border p-3"
+        />
+      </div>
+
+      {/* 受捐助機構 */}
+      <div className="mb-5">
+        <label className="mb-2 block font-medium">
+          受捐助機構
+        </label>
+
+        <select
+          value={editingWeeklyOrganization}
+          onChange={(e) =>
+            setEditingWeeklyOrganization(e.target.value)
+          }
+          className="w-full rounded-lg border p-3"
+        >
+          <option value="">請選擇機構</option>
+
+          {donationOrganizations.map((organization: any) => (
+            <option
+              key={organization.id}
+              value={organization.name}
+            >
+              {organization.name}
+            </option>
+          ))}
+
+          {editingWeeklyOrganization &&
+            !donationOrganizations.some(
+              (organization: any) =>
+                organization.name === editingWeeklyOrganization
+            ) && (
+              <option value={editingWeeklyOrganization}>
+                {editingWeeklyOrganization}
+              </option>
+            )}
+        </select>
+      </div>
+
+      {/* 原有捐贈照片 */}
+      <div className="mb-5">
+        <label className="mb-2 block font-medium">
+          實際捐贈照片
+        </label>
+
+        {selectedWeeklyRecord.donationImageUrl ? (
+          <a
+            href={selectedWeeklyRecord.donationImageUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src={selectedWeeklyRecord.donationImageUrl}
+              alt="實際捐贈照片"
+              className="mb-3 max-h-72 w-full rounded-lg border object-contain"
+            />
+          </a>
+        ) : (
+          <p className="mb-3 text-sm text-gray-500">
+            尚未上傳捐贈照片
+          </p>
+        )}
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            setEditingWeeklyDonationImage(
+              e.target.files?.[0] || null
+            )
+          }
+          className="w-full rounded-lg border p-3"
+        />
+
+        <p className="mt-1 text-sm text-gray-500">
+          不選擇新照片，就會保留原本的照片。
+        </p>
+      </div>
+
+      {/* 原有捐贈收據 */}
+      <div className="mb-6">
+        <label className="mb-2 block font-medium">
+          捐贈收據
+        </label>
+
+        {selectedWeeklyRecord.receiptImageUrl ? (
+          <a
+            href={selectedWeeklyRecord.receiptImageUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src={selectedWeeklyRecord.receiptImageUrl}
+              alt="捐贈收據"
+              className="mb-3 max-h-72 w-full rounded-lg border object-contain"
+            />
+          </a>
+        ) : (
+          <p className="mb-3 text-sm text-gray-500">
+            尚未上傳捐贈收據
+          </p>
+        )}
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            setEditingWeeklyReceiptImage(
+              e.target.files?.[0] || null
+            )
+          }
+          className="w-full rounded-lg border p-3"
+        />
+
+        <p className="mt-1 text-sm text-gray-500">
+          不選擇新收據，就會保留原本的收據。
+        </p>
+      </div>
+
+      {/* 操作按鈕 */}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => setSelectedWeeklyRecord(null)}
+          disabled={savingWeeklyEdit}
+          className="rounded-lg bg-gray-200 px-5 py-3 hover:bg-gray-300 disabled:opacity-50"
+        >
+          取消
+        </button>
+
+        <button
+          type="button"
+          onClick={handleUpdateWeeklyRecord}
+          disabled={savingWeeklyEdit}
+          className="rounded-lg bg-green-600 px-5 py-3 font-bold text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          {savingWeeklyEdit ? "儲存中..." : "儲存修改"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 </div>
 )}
 
