@@ -1955,7 +1955,7 @@ if (!liff.isLoggedIn()) {
 {record.receiptUrl ? (
   <button
     type="button"
-    onClick={() => setSelectedReceiptUrl(record.receiptUrl)}
+    onClick={() => setSelectedDonationReceipt(record.receiptUrl)}
     className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 font-bold text-green-700 transition hover:bg-green-100"
   >
     🧾 查看捐款收據
