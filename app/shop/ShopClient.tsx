@@ -143,6 +143,9 @@ const [monthlyDonationRecords, setMonthlyDonationRecords] =
 // 定期捐款資料載入狀態
 const [monthlyDonationLoading, setMonthlyDonationLoading] =
   useState(false);
+// 前台收據照片視窗
+const [selectedReceiptUrl, setSelectedReceiptUrl] =
+  useState("");
 const [donationRecordsLoading, setDonationRecordsLoading] =
   useState(false);
 
@@ -1947,6 +1950,16 @@ if (!liff.isLoggedIn()) {
       })()
     )}
   </div>
+)}
+{/* 查看捐款收據 */}
+{record.receiptUrl && (
+  <button
+    type="button"
+    onClick={() => setSelectedReceiptUrl(record.receiptUrl)}
+    className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 px-4 py-3 font-bold text-green-700 transition hover:bg-green-100"
+  >
+    🧾 查看捐款收據
+  </button>
 )}
                 </div>
               ))}
