@@ -265,8 +265,16 @@ export async function POST(req: Request) {
         ? body.donorAccountLast5.trim()
         : "";
 
-    const units = Number(body.units);
-    const amount = units * 100;
+    const donationType =
+    body.donationType === "monthly" ? "monthly" : "free";
+
+    const submittedUnits = Number(body.units);
+
+    const units =
+    donationType === "monthly" ? 120 : submittedUnits;
+
+    const amount =
+    donationType === "monthly" ? 12000 : submittedUnits * 100;
 
     if (!donorName || donorName.length > 100) {
       return NextResponse.json(
@@ -290,15 +298,18 @@ export async function POST(req: Request) {
     }
 
     if (
-      !Number.isSafeInteger(units) ||
-      units < 1 ||
-      units > 10000
-    ) {
-      return NextResponse.json(
-        { error: "認捐單位數不正確" },
-        { status: 400 }
-      );
-    }
+  donationType === "free" &&
+  (
+    !Number.isSafeInteger(submittedUnits) ||
+    submittedUnits < 1 ||
+    submittedUnits > 10000
+  )
+) {
+  return NextResponse.json(
+    { error: "認捐單位數不正確" },
+    { status: 400 }
+  );
+}
 
     const docRef = await adminDb
       .collection("donations")
@@ -307,6 +318,7 @@ export async function POST(req: Request) {
         donorPhone,
         units,
         amount,
+        donationType,
         donorAccountLast5,
         status: "pending",
         receiptUrl: "",

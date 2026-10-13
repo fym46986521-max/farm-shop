@@ -105,6 +105,15 @@ const [donorAccountLast5, setDonorAccountLast5] = useState("");
 // 認捐流程步驟：1 填寫資料、2 查看匯款資訊
 const [donationStep, setDonationStep] = useState<1 | 2>(1);
 const [donationUnits, setDonationUnits] = useState(1);
+// 捐款類型：自由捐款／每月扣繳捐款
+const [donationType, setDonationType] = useState<
+  "free" | "monthly"
+>("free");
+
+const donationAmount =
+  donationType === "monthly"
+    ? 12000
+    : donationUnits * 100;
 const [donationSubmitting, setDonationSubmitting] = useState(false);
 const [showEmptyAlert, setShowEmptyAlert] = useState(false);
 const [lineUserId, setLineUserId] = useState("");
@@ -382,13 +391,16 @@ const loadDonationRecords = async (
   }
 
   if (
+  donationType === "free" &&
+  (
     !Number.isSafeInteger(donationUnits) ||
     donationUnits < 1 ||
     donationUnits > 10000
-  ) {
-    alert("認捐單位數不正確");
-    return;
-  }
+  )
+) {
+  alert("認捐單位數不正確");
+  return;
+}
 
   setDonationSubmitting(true);
 
@@ -399,11 +411,12 @@ const loadDonationRecords = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        donorName: name,
-        donorPhone: phone,
-        donorAccountLast5,
-        units: donationUnits,
-      }),
+  donorName: name,
+  donorPhone: phone,
+  donorAccountLast5,
+  donationType,
+  units: donationType === "monthly" ? 120 : donationUnits,
+}),
     });
 
     const result = await response.json();
@@ -1024,11 +1037,51 @@ if (!liff.isLoggedIn()) {
             🥬 加入一菜一心認捐行動
           </h2>
 
-          <p className="text-gray-600 leading-7">
-            每認捐一單位為 NT$100。
-            每週目標為 NT$5,000，讓我們一起集結善意，
-            支持每週 50 公斤新鮮蔬菜的公益配送。
-          </p>
+          <div className="mb-4 grid grid-cols-2 gap-3">
+  <button
+    type="button"
+    onClick={() => setDonationType("free")}
+    className={`rounded-xl border-2 px-3 py-3 font-bold transition ${
+      donationType === "free"
+        ? "border-green-600 bg-green-600 text-white"
+        : "border-green-200 bg-white text-green-700"
+    }`}
+  >
+    🥬 自由捐款
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setDonationType("monthly")}
+    className={`rounded-xl border-2 px-3 py-3 font-bold transition ${
+      donationType === "monthly"
+        ? "border-orange-500 bg-orange-500 text-white"
+        : "border-orange-200 bg-white text-orange-600"
+    }`}
+  >
+    💚 每月扣繳捐款
+  </button>
+</div>
+
+{donationType === "free" ? (
+  <p className="text-gray-600 leading-7">
+    每認捐一單位為 NT$100。
+    每週目標為 NT$5,000，讓我們一起集結善意，
+    支持每週 50 公斤新鮮蔬菜的公益配送。
+  </p>
+) : (
+  <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+    <p className="font-bold text-orange-800">
+      每月定期捐款方案
+    </p>
+    <p className="mt-2 text-sm leading-7 text-gray-700">
+      一次銀行轉帳 NT$12,000，經農場管理員確認收到款項後，
+      將安排為期 12 個月的公益捐款紀錄。
+      每月捐款 NT$1,000，首月從捐款當日開始記錄，
+      後續月份於每月 1 日記錄。
+    </p>
+  </div>
+)}
 
           <div className="mt-5 rounded-xl bg-gray-50 p-4">
 
@@ -1116,7 +1169,7 @@ if (!liff.isLoggedIn()) {
             <p className="text-center mt-4 text-gray-700">
               認捐金額：
               <span className="text-2xl font-black text-orange-600">
-                NT${donationUnits * 100}
+                NT${donationAmount.toLocaleString("en-US")}
               </span>
             </p>
 
@@ -1263,11 +1316,13 @@ if (!liff.isLoggedIn()) {
 
                   <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-4">
                     <p className="text-3xl font-black text-orange-600">
-                      NT${donationUnits * 100}
+                      NT${donationAmount.toLocaleString("en-US")}
                     </p>
 
                     <p className="mt-1 text-sm text-gray-500">
-                      {donationUnits} 個認捐單位，每單位 NT$100
+                      {donationType === "free"
+                        ? `${donationUnits} 個認捐單位，每單位 NT$100`
+                        : "12 個月，每月 NT$1,000"}
                     </p>
                   </div>
                 </div>
@@ -1350,7 +1405,7 @@ if (!liff.isLoggedIn()) {
                     </p>
 
                     <p className="mt-1 text-3xl font-black text-orange-600">
-                      NT${donationUnits * 100}
+                      NT${donationAmount.toLocaleString("en-US")}
                     </p>
                   </div>
                 </div>
@@ -1866,7 +1921,7 @@ if (!liff.isLoggedIn()) {
                 }
                 className="w-full rounded-xl border border-green-200 bg-green-50 px-4 py-4 font-bold text-green-800 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
               >
-                🧾 查看捐贈收據
+                🧾 查看當周感謝狀
               </button>
             </div>
           </article>
