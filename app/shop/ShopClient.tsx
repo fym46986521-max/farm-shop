@@ -1711,11 +1711,11 @@ if (!liff.isLoggedIn()) {
 
     {record.status === "confirmed" ? (
       <span className="mt-1 inline-block whitespace-nowrap rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-700">
-        已確認
+        已確認捐款成功
       </span>
     ) : (
       <span className="mt-1 inline-block whitespace-nowrap rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-700">
-        待確認
+        款項待確認中
       </span>
     )}
   </div>
