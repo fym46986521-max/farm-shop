@@ -18,6 +18,7 @@ import {
   updateDoc,
   setDoc,
   getDoc,
+  runTransaction,
 } from "firebase/firestore";
 import { storage } from "@/lib/firebase";
 import {
@@ -893,10 +894,120 @@ const handleConfirmDonation = async (
   checked: boolean
 ) => {
   try {
-    await updateDoc(doc(db, "donations", donationId), {
-      status: checked ? "confirmed" : "pending",
+    const donationRef = doc(db, "donations", donationId);
+
+    await runTransaction(db, async (transaction) => {
+      const donationSnapshot = await transaction.get(donationRef);
+
+      if (!donationSnapshot.exists()) {
+        throw new Error("找不到這筆捐款資料");
+      }
+
+      const donation = donationSnapshot.data();
+
+      // 取消確認：只更新狀態，不刪除已建立的公益紀錄
+      if (!checked) {
+        transaction.update(donationRef, {
+          status: "pending",
+        });
+
+        return;
+      }
+
+      // 已經確認過，不重複建立紀錄
+      if (donation.status === "confirmed") {
+        return;
+      }
+
+      // 自由捐款：維持原本行為
+      if (donation.donationType !== "monthly") {
+        transaction.update(donationRef, {
+          status: "confirmed",
+          confirmedAt: Timestamp.now(),
+        });
+
+        return;
+      }
+
+      // 定期捐款必須是固定一年 NT$12,000
+      if (Number(donation.amount) !== 12000) {
+        throw new Error(
+          "定期捐款金額不是 NT$12,000，請先核對資料"
+        );
+      }
+
+      const now = new Date();
+
+      // 第一筆：以管理員確認收款的日期記錄
+      const firstMonth =
+        `${now.getFullYear()}-${String(
+          now.getMonth() + 1
+        ).padStart(2, "0")}`;
+
+      // 使用固定文件 ID，避免同一筆捐款重複建立首月紀錄
+      const firstRecordRef = doc(
+        db,
+        "monthlyDonationRecords",
+        `${donationId}_01`
+      );
+
+      const planRef = doc(
+        db,
+        "monthlyDonationPlans",
+        donationId
+      );
+
+      const firstRecordSnapshot = await transaction.get(
+        firstRecordRef
+      );
+
+      const planSnapshot = await transaction.get(planRef);
+
+      if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
+        throw new Error(
+          "這筆定期捐款已存在月紀錄或排程，請先核對資料"
+        );
+      }
+
+      // 下一次執行日期：下個月 1 日
+      const nextMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        1
+      );
+
+      transaction.set(firstRecordRef, {
+        donationId,
+        donorName: donation.donorName || "善心人士",
+        amount: 1000,
+        month: firstMonth,
+        installment: 1,
+        donationType: "monthly",
+        createdAt: Timestamp.now(),
+      });
+
+      // 保存後續 11 個月的排程資訊
+      transaction.set(planRef, {
+        donationId,
+        donorName: donation.donorName || "善心人士",
+        totalAmount: 12000,
+        monthlyAmount: 1000,
+        totalMonths: 12,
+        completedMonths: 1,
+        nextInstallment: 2,
+        nextRunAt: Timestamp.fromDate(nextMonth),
+        status: "active",
+        createdAt: Timestamp.now(),
+      });
+
+      transaction.update(donationRef, {
+        status: "confirmed",
+        confirmedAt: Timestamp.now(),
+        monthlyPlanCreated: true,
+      });
     });
 
+    // 更新後台畫面
     setDonations((prev) =>
       prev.map((item) =>
         item.id === donationId
@@ -907,9 +1018,20 @@ const handleConfirmDonation = async (
           : item
       )
     );
+
+    alert(
+      checked
+        ? "捐款確認成功！若為定期捐款，已建立首月紀錄及後續排程資料。"
+        : "已取消捐款確認。"
+    );
   } catch (error) {
     console.error("更新捐款狀態失敗：", error);
-    alert("更新失敗，請檢查 Firebase 權限。");
+
+    alert(
+      error instanceof Error
+        ? `更新失敗：${error.message}`
+        : "更新失敗，請檢查 Firebase 權限。"
+    );
   }
 };
 

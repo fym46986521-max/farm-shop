@@ -64,6 +64,8 @@ export async function GET(req: Request) {
             typeof data.donorName === "string"
               ? data.donorName
               : "善心人士",
+          donationType:
+            data.donationType === "monthly" ? "monthly" : "free",
           _donorPhone:
             typeof data.donorPhone === "string"
               ? data.donorPhone
@@ -195,6 +197,8 @@ export async function GET(req: Request) {
           typeof data.donorName === "string"
             ? data.donorName
             : "善心人士",
+        donationType:
+          data.donationType === "monthly" ? "monthly" : "free",
         donorPhone: phone.replace(
           /^(\d{4})\d{3}(\d{3})$/,
           "$1***$2"
@@ -270,16 +274,15 @@ export async function POST(req: Request) {
 
     const submittedUnits = Number(body.units);
 
-    const units =
+   const units =
   donationType === "monthly"
-    ? submittedUnits * 120
+    ? 120
     : submittedUnits;
 
 const amount =
   donationType === "monthly"
-    ? submittedUnits * 12000
+    ? 12000
     : submittedUnits * 100;
-
     if (!donorName || donorName.length > 100) {
       return NextResponse.json(
         { error: "請輸入正確的捐款人姓名" },
