@@ -2313,7 +2313,7 @@ const handleSaveMonthlyPlan = async () => {
       </button>
             {showOneHeart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-xl bg-white p-4 sm:p-6 shadow-xl">
 
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-green-700">
@@ -2430,8 +2430,8 @@ const handleSaveMonthlyPlan = async () => {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] table-fixed border-collapse text-sm">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-full min-w-[950px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-100 text-left">
                   <th className="border p-3">匯款審核</th>
@@ -2466,7 +2466,7 @@ const handleSaveMonthlyPlan = async () => {
                         />
                       </td>
 
-                      <td className="border p-3">
+                      <td className="w-[170px] border p-2 align-top">
   <div className="flex flex-col gap-2">
     <span>{item.donorName || "未填寫"}</span>
 
@@ -2476,40 +2476,69 @@ const handleSaveMonthlyPlan = async () => {
           開始繳費月份
         </label>
 
-        <input
-          type="month"
-          value={
-            item.startMonth ||
-            (item.createdAt?.toDate
-              ? (() => {
-                  const date = item.createdAt.toDate();
-                  return `${date.getFullYear()}-${String(
-                    date.getMonth() + 1
-                  ).padStart(2, "0")}`;
-                })()
-              : new Date().toISOString().slice(0, 7))
-          }
-          onChange={(event) => {
-            const startMonth = event.target.value;
+        <div className="w-full min-w-0">
+  <label className="mb-1 block text-xs text-gray-500">
+    開始繳費月份
+  </label>
 
-            setDonations((prev) =>
-              prev.map((donation) =>
-                donation.id === item.id
-                  ? { ...donation, startMonth }
-                  : donation
-              )
-            );
-          }}
-          className="mt-1 block w-full min-w-0 max-w-full box-border rounded-lg border border-gray-300 px-2 py-2 text-sm"
-          aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
-        />
+  <input
+    type="month"
+    value={
+      item.startMonth ||
+      (item.createdAt?.toDate
+        ? (() => {
+            const date = item.createdAt.toDate();
+
+            return `${date.getFullYear()}-${String(
+              date.getMonth() + 1
+            ).padStart(2, "0")}`;
+          })()
+        : new Date().toISOString().slice(0, 7))
+    }
+    onChange={(event) => {
+      const startMonth = event.target.value;
+
+      setDonations((prev) =>
+        prev.map((donation) =>
+          donation.id === item.id
+            ? { ...donation, startMonth }
+            : donation
+        )
+      );
+    }}
+    className="block w-full min-w-0 rounded-md border border-gray-300 px-2 py-2 text-sm"
+    aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
+  />
+
+  <button
+    type="button"
+    onClick={() =>
+      handleSaveDonationStartMonth(
+        item.id,
+        item.startMonth ||
+          (item.createdAt?.toDate
+            ? (() => {
+                const date = item.createdAt.toDate();
+
+                return `${date.getFullYear()}-${String(
+                  date.getMonth() + 1
+                ).padStart(2, "0")}`;
+              })()
+            : new Date().toISOString().slice(0, 7))
+      )
+    }
+    className="mt-2 w-full rounded-md bg-green-600 px-2 py-1.5 text-xs font-bold text-white hover:bg-green-700"
+  >
+    儲存月份
+  </button>
+</div>
         
       </div>
     )}
   </div>
 </td>
 
-                      <td className="border p-3">
+                      <td className="w-[120px] border p-2 align-top break-all">
                         {item.donorPhone || "未填寫"}
                       </td>
 
