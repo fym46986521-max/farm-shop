@@ -285,33 +285,30 @@ console.table(
 );
     const freeDonations = donations
   .filter((item: any) => {
-    if (item.status !== "confirmed") return false;
-    if (item.donationType !== "free") return false;
+    // 只處理已確認的捐款
+    if (item.status !== "confirmed") {
+      return false;
+    }
 
+    // 只處理自由捐款
+    if (item.donationType !== "free") {
+      return false;
+    }
+
+    // 取得捐款日期
     const date = getDonationDate(
       item.confirmedAt || item.createdAt
     );
 
     if (!date) {
-      console.warn(
-        "[一菜一心] 無法解析捐款日期",
-        {
-          id: item.id,
-          donorName: item.donorName,
-          createdAt: item.createdAt,
-          confirmedAt: item.confirmedAt,
-        }
-      );
-
       return false;
     }
 
-    const donationMonth =
-      `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-    return donationMonth === monthKey;
+    // 必須符合目前選取的年份與月份
+    return (
+      date.getFullYear() === Number(year) &&
+      date.getMonth() + 1 === Number(month)
+    );
   })
   .map((item: any) => ({
     id: item.id,
@@ -326,12 +323,23 @@ console.table(
     ),
   }))
   .filter(
-    (item: any) => item.originalAmount > 0
+    (item: any) =>
+      item.donationTime > 0 &&
+      item.originalAmount > 0
   )
   .sort(
     (a: any, b: any) =>
       a.donationTime - b.donationTime
   );
+
+console.log(
+  "[一菜一心] 自由捐款篩選結果",
+  {
+    selectedMonth: monthKey,
+    count: freeDonations.length,
+    donations: freeDonations,
+  }
+);
 
     const selectedMonth = monthKey;
 
@@ -384,7 +392,22 @@ console.table(
         // nextRunAt 是下一期應執行的月份。
         // 不把已過期的下一期排程重複算入其他月份。
         const nextRunDate = getDonationDate(plan.nextRunAt);
-
+        console.log(
+  "[一菜一心] 定期捐款排程檢查",
+  {
+    selectedMonth,
+    planId: plan.id,
+    donationId: plan.donationId,
+    status: plan.status,
+    completedMonths: plan.completedMonths,
+    totalMonths: plan.totalMonths,
+    nextRunAt: plan.nextRunAt,
+    donationFound: Boolean(donation),
+    donationStatus: donation?.status,
+    donationType: donation?.donationType,
+    startMonth: donation?.startMonth,
+  }
+);
         if (!nextRunDate) return false;
 
         const nextRunMonth =
