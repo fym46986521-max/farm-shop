@@ -251,7 +251,6 @@ console.table(
 );
     const freeDonations = donations
   .filter((item: any) => {
-    // 只處理已確認的自由捐款
     if (item.status !== "confirmed") return false;
     if (item.donationType !== "free") return false;
 
@@ -261,11 +260,12 @@ console.table(
 
     if (!date) return false;
 
-    // 只納入所選年月的捐款
-    return (
-      date.getFullYear() === year &&
-      date.getMonth() + 1 === month
-    );
+    const donationMonth =
+      `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+    return donationMonth === monthKey;
   })
   .map((item: any) => ({
     id: item.id,
@@ -279,7 +279,8 @@ console.table(
   }))
   .filter((item: any) => item.originalAmount > 0)
   .sort(
-    (a: any, b: any) => a.donationTime - b.donationTime
+    (a: any, b: any) =>
+      a.donationTime - b.donationTime
   );
 
     const selectedMonth = monthKey;
