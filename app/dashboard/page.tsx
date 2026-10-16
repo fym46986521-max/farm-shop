@@ -1284,20 +1284,20 @@ const handleSaveDonationStartMonth = async (
 
       const now = new Date();
 
-// 優先使用管理員選擇的開始繳費月份。
-// 如果尚未選擇，就預設為管理員確認捐款的當月。
+// 預設使用管理員確認捐款的當月
 const currentMonth =
   `${now.getFullYear()}-${String(
     now.getMonth() + 1
   ).padStart(2, "0")}`;
 
+// 優先使用管理員設定的開始繳費月份
 const firstMonth =
   typeof donation.startMonth === "string" &&
   /^\d{4}-(0[1-9]|1[0-2])$/.test(donation.startMonth)
     ? donation.startMonth
     : currentMonth;
 
-// 計算開始繳費月份的下一個月，供後續排程使用。
+// 計算下一次執行日期：開始月份的下一個月 1 日
 const [startYear, startMonthNumber] =
   firstMonth.split("-").map(Number);
 
@@ -1306,6 +1306,8 @@ const nextMonth = new Date(
   startMonthNumber,
   1
 );
+
+
 
       // 使用固定文件 ID，避免同一筆捐款重複建立首月紀錄
       const firstRecordRef = doc(
@@ -2429,7 +2431,7 @@ const handleSaveMonthlyPlan = async () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
+            <table className="w-full min-w-[1050px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-100 text-left">
                   <th className="border p-3">匯款審核</th>
@@ -2498,7 +2500,7 @@ const handleSaveMonthlyPlan = async () => {
               )
             );
           }}
-          className="w-full rounded-lg border p-2"
+          className="mt-1 block w-full min-w-0 max-w-full box-border rounded-lg border border-gray-300 px-2 py-2 text-sm"
           aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
         />
         
