@@ -108,6 +108,22 @@ const [savingMonthlyPlan, setSavingMonthlyPlan] = useState(false);
 
 // 當月計畫是否已鎖定
 const [monthlyPlanLocked, setMonthlyPlanLocked] = useState(false);
+// 切換年月時，自動載入該月份的設定
+useEffect(() => {
+  if (!showOneHeart || oneHeartTab !== "monthlyPlan") {
+    return;
+  }
+
+  loadMonthlyDonationSetting(
+    monthlyPlanYear,
+    monthlyPlanMonth
+  );
+}, [
+  showOneHeart,
+  oneHeartTab,
+  monthlyPlanYear,
+  monthlyPlanMonth,
+]);
   // 歷史排行榜查詢條件
 const currentYear = new Date().getFullYear();
 // 取得指定年份、月份的週數
@@ -1459,7 +1475,144 @@ if (detailFiles.length > 0) {
 
     fetchProducts();
   };
+  // 讀取指定月份的捐款計畫設定
+const loadMonthlyDonationSetting = async (
+  year: number,
+  month: number
+) => {
+  try {
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
+    const settingRef = doc(
+      db,
+      "monthlyDonationSettings",
+      monthKey
+    );
+
+    const settingSnap = await getDoc(settingRef);
+
+    const now = new Date();
+    const currentMonthKey =
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    // 已過去的月份不能修改
+    if (monthKey < currentMonthKey) {
+      setMonthlyPlanLocked(true);
+    } else {
+      setMonthlyPlanLocked(false);
+    }
+
+    if (settingSnap.exists()) {
+      const data = settingSnap.data();
+
+      setWeeklyDeliveryKg(String(data.weeklyDeliveryKg ?? 50));
+      setWeeklyDonationTarget(String(data.weeklyDonationTarget ?? 5000));
+
+      if (data.locked === true) {
+        setMonthlyPlanLocked(true);
+      }
+    } else {
+      setWeeklyDeliveryKg("50");
+      setWeeklyDonationTarget("5000");
+    }
+  } catch (error) {
+    console.error("讀取每月捐款計畫失敗：", error);
+    alert("讀取每月捐款計畫失敗，請檢查網路或 Firebase 權限。");
+  }
+};
+  // 儲存每月捐款計畫
+const handleSaveMonthlyPlan = async () => {
+  if (savingMonthlyPlan) return;
+
+  const deliveryKg = Number(weeklyDeliveryKg);
+  const donationTarget = Number(weeklyDonationTarget);
+
+  if (
+    !Number.isFinite(deliveryKg) ||
+    !Number.isFinite(donationTarget) ||
+    deliveryKg < 0 ||
+    donationTarget < 0
+  ) {
+    alert("配送量與認捐目標必須是大於或等於 0 的有效數字。");
+    return;
+  }
+
+  const now = new Date();
+
+  const currentMonthKey =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const selectedMonthKey =
+    `${monthlyPlanYear}-${String(monthlyPlanMonth).padStart(2, "0")}`;
+
+  // 不允許修改已過去的月份
+  if (selectedMonthKey < currentMonthKey) {
+    alert("歷史月份不能修改，請選擇本月或未來月份。");
+    return;
+  }
+
+  // 本月修改的設定，下個月才生效。
+  // 若選擇未來月份，則直接儲存到選定月份。
+  let targetYear = monthlyPlanYear;
+  let targetMonth = monthlyPlanMonth;
+
+  if (selectedMonthKey === currentMonthKey) {
+    targetMonth += 1;
+
+    if (targetMonth > 12) {
+      targetMonth = 1;
+      targetYear += 1;
+    }
+  }
+
+  const targetMonthKey =
+    `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
+
+  setSavingMonthlyPlan(true);
+
+  try {
+    const settingRef = doc(
+      db,
+      "monthlyDonationSettings",
+      targetMonthKey
+    );
+
+    // 防止覆寫已鎖定的月份
+    const existingSetting = await getDoc(settingRef);
+
+    if (existingSetting.exists() && existingSetting.data().locked === true) {
+      alert("這個月份已鎖定，不能修改設定。");
+      setMonthlyPlanLocked(true);
+      return;
+    }
+
+    await setDoc(
+      settingRef,
+      {
+        year: targetYear,
+        month: targetMonth,
+        weeklyDeliveryKg: deliveryKg,
+        weeklyDonationTarget: donationTarget,
+        locked: false,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    );
+
+    // 切換到實際生效月份
+    setMonthlyPlanYear(targetYear);
+    setMonthlyPlanMonth(targetMonth);
+
+    alert(
+      `每月捐款計畫儲存成功！\n生效月份：${targetYear} 年 ${targetMonth} 月`
+    );
+  } catch (error) {
+    console.error("儲存每月捐款計畫失敗：", error);
+    alert("儲存失敗，請檢查 Firebase 權限或網路連線。");
+  } finally {
+    setSavingMonthlyPlan(false);
+  }
+};
   const handleSaveShipping = async () => {
     try {
       await setDoc(doc(db, "settings", "shipping"), {
@@ -2767,17 +2920,13 @@ if (detailFiles.length > 0) {
   </div>
 
   <button
-    type="button"
-    disabled={savingMonthlyPlan || monthlyPlanLocked}
-    onClick={() => {
-      alert(
-        "目前只有設定介面，尚未連接 Firebase 儲存功能。"
-      );
-    }}
-    className="w-full rounded-lg bg-green-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    {savingMonthlyPlan ? "儲存中..." : "儲存每月計畫"}
-  </button>
+  type="button"
+  disabled={savingMonthlyPlan || monthlyPlanLocked}
+  onClick={handleSaveMonthlyPlan}
+  className="w-full rounded-lg bg-green-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {savingMonthlyPlan ? "儲存中..." : "儲存每月計畫"}
+</button>
 </div>
 ) : null}
 
