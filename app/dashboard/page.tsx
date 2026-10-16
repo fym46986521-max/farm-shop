@@ -85,7 +85,9 @@ export default function DashboardPage() {
   const [cost, setCost] = useState(0);
   const [profit, setProfit] = useState(0);
   const [showOneHeart, setShowOneHeart] = useState(false);
-  const [oneHeartTab, setOneHeartTab] = useState<"stats" | "records">("stats");
+  const [oneHeartTab, setOneHeartTab] = useState<
+  "stats" | "records" | "monthlyPlan"
+>("stats");
   // 歷史排行榜查詢條件
 const currentYear = new Date().getFullYear();
 // 取得指定年份、月份的週數
@@ -1813,6 +1815,17 @@ if (detailFiles.length > 0) {
   >
     每週捐贈紀錄
   </button>
+  <button
+  type="button"
+  onClick={() => setOneHeartTab("monthlyPlan")}
+  className={`rounded-lg px-4 py-2 ${
+    oneHeartTab === "monthlyPlan"
+      ? "bg-green-600 text-white"
+      : "bg-gray-200 text-gray-700 "
+  }`}
+>
+  每月捐款計畫
+</button>
 </div>
 
             {oneHeartTab === "stats" ? (
