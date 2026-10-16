@@ -198,27 +198,61 @@ const calculateMonthlyAllocation = () => {
 
     setMonthlyAllocationCap(cap);
 
-    // 統一處理 Firebase Timestamp、Date、字串及數字
     const getDonationDate = (value: any): Date | null => {
-      if (!value) return null;
+  if (!value) return null;
 
-      if (typeof value.toDate === "function") {
-        const date = value.toDate();
-        return Number.isNaN(date.getTime()) ? null : date;
-      }
+  // Firebase Timestamp
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
 
-      if (typeof value.toMillis === "function") {
-        const date = new Date(value.toMillis());
-        return Number.isNaN(date.getTime()) ? null : date;
-      }
+    return date instanceof Date &&
+      !Number.isNaN(date.getTime())
+      ? date
+      : null;
+  }
 
-      const date = value instanceof Date
-        ? value
-        : new Date(value);
+  // JavaScript Date
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? null
+      : value;
+  }
 
-      return Number.isNaN(date.getTime()) ? null : date;
-    };
+  // Timestamp 的毫秒
+  if (typeof value.toMillis === "function") {
+    const date = new Date(value.toMillis());
 
+    return Number.isNaN(date.getTime())
+      ? null
+      : date;
+  }
+
+  // Firestore Timestamp 的一般物件格式
+  if (
+    typeof value === "object" &&
+    typeof value.seconds === "number"
+  ) {
+    const date = new Date(value.seconds * 1000);
+
+    return Number.isNaN(date.getTime())
+      ? null
+      : date;
+  }
+
+  // 字串或數字
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+      ? null
+      : date;
+  }
+
+  return null;
+};
     const getDonationTime = (item: any): number => {
       const date = getDonationDate(
         item.confirmedAt || item.createdAt
@@ -258,7 +292,19 @@ console.table(
       item.confirmedAt || item.createdAt
     );
 
-    if (!date) return false;
+    if (!date) {
+      console.warn(
+        "[一菜一心] 無法解析捐款日期",
+        {
+          id: item.id,
+          donorName: item.donorName,
+          createdAt: item.createdAt,
+          confirmedAt: item.confirmedAt,
+        }
+      );
+
+      return false;
+    }
 
     const donationMonth =
       `${date.getFullYear()}-${String(
@@ -270,14 +316,18 @@ console.table(
   .map((item: any) => ({
     id: item.id,
     donationTime: getDonationTime(item),
-    donorName: String(item.donorName || "未提供姓名"),
+    donorName: String(
+      item.donorName || "未提供姓名"
+    ),
     donationType: "自由捐款",
     originalAmount: Math.max(
       0,
       Number(item.amount) || 0
     ),
   }))
-  .filter((item: any) => item.originalAmount > 0)
+  .filter(
+    (item: any) => item.originalAmount > 0
+  )
   .sort(
     (a: any, b: any) =>
       a.donationTime - b.donationTime
@@ -445,11 +495,16 @@ console.table(
 
       remaining -= allocated;
     }
-    console.log("目前試算月份：", monthKey);
-console.log("自由捐款筆數：", freeDonations.length);
-console.log("定期捐款筆數：", recurringDonations.length);
-console.table(freeDonations);
-console.table(recurringDonations);
+    console.log("[一菜一心] 分配診斷", {
+  selectedMonth: monthKey,
+  donationsCount: donations.length,
+  plansCount: monthlyDonationPlans.length,
+  freeDonationCount: freeDonations.length,
+  recurringDonationCount: recurringDonations.length,
+  cap,
+  rowsCount: rows.length,
+  rows,
+});
     setMonthlyAllocationRows(rows);
 
     const totalAllocated = rows.reduce(
@@ -2031,17 +2086,11 @@ const handleSaveMonthlyPlan = async () => {
 
   // 本月修改的設定，下個月才生效。
   // 若選擇未來月份，則直接儲存到選定月份。
-  let targetYear = monthlyPlanYear;
-  let targetMonth = monthlyPlanMonth;
-
   const targetYear = monthlyPlanYear;
 const targetMonth = monthlyPlanMonth;
 
 const targetMonthKey =
   `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
-
-  const targetMonthKey =
-    `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
 
   setSavingMonthlyPlan(true);
 
