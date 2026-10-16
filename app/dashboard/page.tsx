@@ -216,28 +216,7 @@ const calculateMonthlyAllocation = () => {
       return 0;
     };
 
-    // 篩選已確認的自由捐款。
-// 暫時先列出所有已確認的自由捐款，
-// 後續再依已分配紀錄扣除，避免重複分配。
-const freeDonations = donations
-  .filter(
-    (item: any) =>
-      item.status === "confirmed" &&
-      item.donationType !== "monthly"
-  )
-  .map((item: any) => ({
-    id: item.id,
-    donationTime: getDonationTime(item),
-    donorName: String(item.donorName || "未提供姓名"),
-    donationType: "自由捐款",
-    originalAmount: Math.max(0, Number(item.amount) || 0),
-  }))
-  .filter((item: any) => item.donationTime > 0)
-  .sort(
-    (a: any, b: any) =>
-      a.donationTime - b.donationTime
-  );
-
+    const freeDonations = donations
     // 篩選指定月份、已審核且已到開始繳費月份的定期捐款
 // 從定期捐款排程取得有效的定期捐款人
 const selectedMonth =
