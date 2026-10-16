@@ -226,36 +226,69 @@ const calculateMonthlyAllocation = () => {
           a.donationTime - b.donationTime
       );
 
-    // 篩選指定月份、且原始捐款仍然通過審核的定期捐款紀錄
+    // 篩選指定月份、已審核且已到開始繳費月份的定期捐款
 const recurringDonations = monthlyDonationRecords
   .filter((item: any) => {
-    const matchesMonth =
-      item.month === monthKey ||
-      item.month === `${year}-${month}`;
-
-    if (!matchesMonth) {
-      return false;
-    }
-
-    // 找出對應的原始捐款
+    // 先確認原始捐款存在且已通過審核
     const donation = donations.find(
       (d: any) => d.id === item.donationId
     );
 
-    // 原始捐款不存在或已取消審核，就不列入分配清單
-    if (!donation || donation.status !== "confirmed") {
+    if (
+      !donation ||
+      donation.status !== "confirmed" ||
+      donation.donationType !== "monthly"
+    ) {
       return false;
     }
 
-    // 只列入定期捐款
-    if (donation.donationType !== "monthly") {
+    // 取得開始繳費月份：
+    // 優先使用後台設定的 startMonth；
+    // 沒設定時，使用原始捐款建立日期。
+    const createdAt = donation.createdAt;
+
+    let defaultStartMonth = "";
+
+    if (createdAt?.toDate) {
+      const date = createdAt.toDate();
+
+      defaultStartMonth =
+        `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+    } else if (createdAt) {
+      const date = new Date(createdAt);
+
+      if (!Number.isNaN(date.getTime())) {
+        defaultStartMonth =
+          `${date.getFullYear()}-${String(
+            date.getMonth() + 1
+          ).padStart(2, "0")}`;
+      }
+    }
+
+    const startMonth =
+      String(donation.startMonth || defaultStartMonth);
+
+    // 將開始月份與目前選擇的月份轉成 YYYY-MM 比較
+    const selectedMonth =
+      `${year}-${String(month).padStart(2, "0")}`;
+
+    if (startMonth && selectedMonth < startMonth) {
       return false;
     }
 
-    return true;
+    // 只顯示目前選擇月份的紀錄
+    const recordMonth = String(item.month || "");
+
+    return (
+      recordMonth === monthKey ||
+      recordMonth === selectedMonth
+    );
   })
   .map((item: any) => ({
     id: item.id,
+
     donationTime: (() => {
       const value = item.confirmedAt || item.createdAt;
 
@@ -263,13 +296,18 @@ const recurringDonations = monthlyDonationRecords
       if (value?.toDate) return value.toDate().getTime();
       if (value instanceof Date) return value.getTime();
 
-      if (typeof value === "string" || typeof value === "number") {
+      if (
+        typeof value === "string" ||
+        typeof value === "number"
+      ) {
         const parsed = new Date(value).getTime();
+
         return Number.isNaN(parsed) ? 0 : parsed;
       }
 
       return 0;
     })(),
+
     donorName: String(item.donorName || "未提供姓名"),
     donationType: "每月定期捐款",
     originalAmount: Math.max(0, Number(item.amount) || 0),
@@ -1164,7 +1202,7 @@ const handleConfirmDonation = async (
       const donation = donationSnapshot.data();
 
       // 取消確認：恢復待審核，並停用定期捐款後續排程
-if (!checked) {
+  if (!checked) {
   transaction.update(donationRef, {
     status: "pending",
     monthlyPlanCreated: false,
@@ -1190,6 +1228,37 @@ if (!checked) {
 
   return;
 }
+// 儲存定期捐款的開始繳費月份
+const handleSaveDonationStartMonth = async (
+  donationId: string,
+  startMonth: string
+) => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
+    alert("請選擇正確的開始繳費月份");
+    return;
+  }
+
+  try {
+    const donationRef = doc(db, "donations", donationId);
+
+    await updateDoc(donationRef, {
+      startMonth,
+    });
+
+    setDonations((prev) =>
+      prev.map((item) =>
+        item.id === donationId
+          ? { ...item, startMonth }
+          : item
+      )
+    );
+
+    alert("開始繳費月份已儲存");
+  } catch (error) {
+    console.error("儲存開始繳費月份失敗：", error);
+    alert("儲存失敗，請確認 Firebase 權限後重試");
+  }
+};
 
       // 已經確認過，不重複建立紀錄
       if (donation.status === "confirmed") {
@@ -1215,11 +1284,28 @@ if (!checked) {
 
       const now = new Date();
 
-      // 第一筆：以管理員確認收款的日期記錄
-      const firstMonth =
-        `${now.getFullYear()}-${String(
-          now.getMonth() + 1
-        ).padStart(2, "0")}`;
+// 優先使用管理員選擇的開始繳費月份。
+// 如果尚未選擇，就預設為管理員確認捐款的當月。
+const currentMonth =
+  `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+const firstMonth =
+  typeof donation.startMonth === "string" &&
+  /^\d{4}-(0[1-9]|1[0-2])$/.test(donation.startMonth)
+    ? donation.startMonth
+    : currentMonth;
+
+// 計算開始繳費月份的下一個月，供後續排程使用。
+const [startYear, startMonthNumber] =
+  firstMonth.split("-").map(Number);
+
+const nextMonth = new Date(
+  startYear,
+  startMonthNumber,
+  1
+);
 
       // 使用固定文件 ID，避免同一筆捐款重複建立首月紀錄
       const firstRecordRef = doc(
@@ -1259,13 +1345,7 @@ if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
   );
 }
 
-      // 下一次執行日期：下個月 1 日
-      const nextMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        1
-      );
-
+      
       transaction.set(firstRecordRef, {
         donationId,
         donorName: donation.donorName || "善心人士",
@@ -1401,6 +1481,35 @@ const handleDeleteDonation = async (donationId: string) => {
   } catch (error) {
     console.error("刪除認捐資料失敗：", error);
     alert("刪除失敗，請檢查 Firebase 權限。");
+  }
+};
+// 儲存定期捐款的開始繳費月份
+const handleSaveDonationStartMonth = async (
+  donationId: string,
+  startMonth: string
+) => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
+    alert("請選擇有效的開始繳費月份");
+    return;
+  }
+
+  try {
+    await updateDoc(doc(db, "donations", donationId), {
+      startMonth,
+    });
+
+    setDonations((prev) =>
+      prev.map((item) =>
+        item.id === donationId
+          ? { ...item, startMonth }
+          : item
+      )
+    );
+
+    alert("開始繳費月份已儲存！");
+  } catch (error) {
+    console.error("儲存開始繳費月份失敗：", error);
+    alert("儲存失敗，請稍後再試。");
   }
 };
   useEffect(() => {
@@ -2356,8 +2465,47 @@ const handleSaveMonthlyPlan = async () => {
                       </td>
 
                       <td className="border p-3">
-                        {item.donorName || "未填寫"}
-                      </td>
+  <div className="flex flex-col gap-2">
+    <span>{item.donorName || "未填寫"}</span>
+
+    {item.donationType === "monthly" && (
+      <div className="min-w-[150px]">
+        <label className="mb-1 block text-xs text-gray-500">
+          開始繳費月份
+        </label>
+
+        <input
+          type="month"
+          value={
+            item.startMonth ||
+            (item.createdAt?.toDate
+              ? (() => {
+                  const date = item.createdAt.toDate();
+                  return `${date.getFullYear()}-${String(
+                    date.getMonth() + 1
+                  ).padStart(2, "0")}`;
+                })()
+              : new Date().toISOString().slice(0, 7))
+          }
+          onChange={(event) => {
+            const startMonth = event.target.value;
+
+            setDonations((prev) =>
+              prev.map((donation) =>
+                donation.id === item.id
+                  ? { ...donation, startMonth }
+                  : donation
+              )
+            );
+          }}
+          className="w-full rounded-lg border p-2"
+          aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
+        />
+        
+      </div>
+    )}
+  </div>
+</td>
 
                       <td className="border p-3">
                         {item.donorPhone || "未填寫"}
