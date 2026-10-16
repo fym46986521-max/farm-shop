@@ -229,6 +229,26 @@ const calculateMonthlyAllocation = () => {
 
     // 只納入所選月份、已確認的自由捐款。
     // 定期捐款另由 monthlyDonationPlans 處理，避免重複計算。
+    console.log(
+  "[一菜一心] 所選月份：",
+  `${monthlyPlanYear}-${String(monthlyPlanMonth).padStart(2, "0")}`
+);
+
+console.table(
+  donations.map((item: any) => ({
+    id: item.id,
+    donorName: item.donorName,
+    amount: item.amount,
+    status: item.status,
+    donationType: item.donationType,
+    createdAt: item.createdAt?.toDate
+      ? item.createdAt.toDate().toISOString()
+      : String(item.createdAt ?? ""),
+    confirmedAt: item.confirmedAt?.toDate
+      ? item.confirmedAt.toDate().toISOString()
+      : String(item.confirmedAt ?? ""),
+  }))
+);
     const freeDonations = donations
   .filter((item: any) => {
     if (item.status !== "confirmed") return false;
@@ -2024,14 +2044,11 @@ const handleSaveMonthlyPlan = async () => {
   let targetYear = monthlyPlanYear;
   let targetMonth = monthlyPlanMonth;
 
-  if (selectedMonthKey === currentMonthKey) {
-    targetMonth += 1;
+  const targetYear = monthlyPlanYear;
+const targetMonth = monthlyPlanMonth;
 
-    if (targetMonth > 12) {
-      targetMonth = 1;
-      targetYear += 1;
-    }
-  }
+const targetMonthKey =
+  `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
 
   const targetMonthKey =
     `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
