@@ -226,25 +226,57 @@ const calculateMonthlyAllocation = () => {
           a.donationTime - b.donationTime
       );
 
-    // 篩選指定月份的定期捐款紀錄。
-    const recurringDonations = monthlyDonationRecords
-      .filter(
-        (item: any) =>
-          item.month === monthKey ||
-          item.month === `${year}-${month}`
-      )
-      .map((item: any) => ({
-        id: item.id,
-        donationTime: getDonationTime(item),
-        donorName: String(item.donorName || "未提供姓名"),
-        donationType: "每月定期捐款",
-        originalAmount: Math.max(0, Number(item.amount) || 0),
-      }))
-      .sort(
-        (a: any, b: any) =>
-          a.donationTime - b.donationTime
-      );
+    // 篩選指定月份、且原始捐款仍然通過審核的定期捐款紀錄
+const recurringDonations = monthlyDonationRecords
+  .filter((item: any) => {
+    const matchesMonth =
+      item.month === monthKey ||
+      item.month === `${year}-${month}`;
 
+    if (!matchesMonth) {
+      return false;
+    }
+
+    // 找出對應的原始捐款
+    const donation = donations.find(
+      (d: any) => d.id === item.donationId
+    );
+
+    // 原始捐款不存在或已取消審核，就不列入分配清單
+    if (!donation || donation.status !== "confirmed") {
+      return false;
+    }
+
+    // 只列入定期捐款
+    if (donation.donationType !== "monthly") {
+      return false;
+    }
+
+    return true;
+  })
+  .map((item: any) => ({
+    id: item.id,
+    donationTime: (() => {
+      const value = item.confirmedAt || item.createdAt;
+
+      if (value?.toMillis) return value.toMillis();
+      if (value?.toDate) return value.toDate().getTime();
+      if (value instanceof Date) return value.getTime();
+
+      if (typeof value === "string" || typeof value === "number") {
+        const parsed = new Date(value).getTime();
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      return 0;
+    })(),
+    donorName: String(item.donorName || "未提供姓名"),
+    donationType: "每月定期捐款",
+    originalAmount: Math.max(0, Number(item.amount) || 0),
+  }))
+  .sort(
+    (a: any, b: any) => a.donationTime - b.donationTime
+  );
     // 先保障定期捐款，再依時間分配自由捐款。
     // 這是試算結果，不會寫入 Firestore。
     const rows: any[] = [];
@@ -1131,14 +1163,33 @@ const handleConfirmDonation = async (
 
       const donation = donationSnapshot.data();
 
-      // 取消確認：只更新狀態，不刪除已建立的公益紀錄
-      if (!checked) {
-        transaction.update(donationRef, {
-          status: "pending",
-        });
+      // 取消確認：恢復待審核，並停用定期捐款後續排程
+if (!checked) {
+  transaction.update(donationRef, {
+    status: "pending",
+    monthlyPlanCreated: false,
+  });
 
-        return;
-      }
+  // 如果是定期捐款，同步停用排程
+  if (donation.donationType === "monthly") {
+    const planRef = doc(
+      db,
+      "monthlyDonationPlans",
+      donationId
+    );
+
+    const planSnapshot = await transaction.get(planRef);
+
+    if (planSnapshot.exists()) {
+      transaction.update(planRef, {
+        status: "cancelled",
+        cancelledAt: Timestamp.now(),
+      });
+    }
+  }
+
+  return;
+}
 
       // 已經確認過，不重複建立紀錄
       if (donation.status === "confirmed") {
@@ -1257,7 +1308,19 @@ if (firstRecordSnapshot.exists() || planSnapshot.exists()) {
           : item
       )
     );
+    // 重新載入定期捐款方案及每月紀錄
+if (!checked) {
+  const recordsSnapshot = await getDocs(
+    collection(db, "monthlyDonationRecords")
+  );
 
+  setMonthlyDonationRecords(
+    recordsSnapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }))
+  );
+}
     alert(
       checked
         ? "捐款確認成功！若為定期捐款，已建立首月紀錄及後續排程資料。"
