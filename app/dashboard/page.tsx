@@ -251,45 +251,36 @@ console.table(
 );
     const freeDonations = donations
   .filter((item: any) => {
+    // 只處理已確認的自由捐款
     if (item.status !== "confirmed") return false;
+    if (item.donationType !== "free") return false;
 
-if (item.donationType !== "free") return false;
+    const date = getDonationDate(
+      item.confirmedAt || item.createdAt
+    );
 
-    const value = item.confirmedAt || item.createdAt;
+    if (!date) return false;
 
-    let date: Date | null = null;
-
-    const date = getDonationDate(value);
-
-if (!date) return false;
-
-return (
-  date.getFullYear() === year &&
-  date.getMonth() + 1 === month
-);
+    // 只納入所選年月的捐款
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() + 1 === month
+    );
   })
   .map((item: any) => ({
     id: item.id,
-    donationTime: (() => {
-      const value = item.confirmedAt || item.createdAt;
-
-      if (value?.toMillis) return value.toMillis();
-      if (value?.toDate) return value.toDate().getTime();
-
-      const date = value instanceof Date
-        ? value
-        : new Date(value);
-
-      return Number.isNaN(date.getTime())
-        ? 0
-        : date.getTime();
-    })(),
+    donationTime: getDonationTime(item),
     donorName: String(item.donorName || "未提供姓名"),
     donationType: "自由捐款",
-    originalAmount: Math.max(0, Number(item.amount) || 0),
+    originalAmount: Math.max(
+      0,
+      Number(item.amount) || 0
+    ),
   }))
   .filter((item: any) => item.originalAmount > 0)
-  .sort((a: any, b: any) => a.donationTime - b.donationTime);
+  .sort(
+    (a: any, b: any) => a.donationTime - b.donationTime
+  );
 
     const selectedMonth = monthKey;
 
@@ -453,7 +444,11 @@ return (
 
       remaining -= allocated;
     }
-
+    console.log("目前試算月份：", monthKey);
+console.log("自由捐款筆數：", freeDonations.length);
+console.log("定期捐款筆數：", recurringDonations.length);
+console.table(freeDonations);
+console.table(recurringDonations);
     setMonthlyAllocationRows(rows);
 
     const totalAllocated = rows.reduce(
