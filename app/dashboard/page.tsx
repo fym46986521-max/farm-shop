@@ -399,8 +399,10 @@ console.log(
 
         // nextRunAt 是下一期應執行的月份。
         // 不把已過期的下一期排程重複算入其他月份。
-        const nextRunDate = getDonationDate(plan.nextRunAt);
-        console.log(
+        
+        
+);
+console.log(
   "[一菜一心] 定期捐款排程檢查",
   {
     selectedMonth,
@@ -415,15 +417,34 @@ console.log(
     donationType: donation?.donationType,
     startMonth: donation?.startMonth,
   }
-);
-        if (!nextRunDate) return false;
+        const nextRunDate = getDonationDate(plan.nextRunAt);
 
-        const nextRunMonth =
-          `${nextRunDate.getFullYear()}-${String(
-            nextRunDate.getMonth() + 1
-          ).padStart(2, "0")}`;
+if (!nextRunDate) {
+  console.log("[定期捐款] 排除：沒有下一期日期", {
+    planId: plan.id,
+    selectedMonth,
+  });
+  return false;
+}
 
-        return nextRunMonth === selectedMonth;
+const nextRunMonth =
+  `${nextRunDate.getFullYear()}-${String(
+    nextRunDate.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+const shouldInclude = nextRunMonth === selectedMonth;
+
+console.log("[定期捐款] 月份檢查", {
+  planId: plan.id,
+  selectedMonth,
+  startMonth,
+  nextRunMonth,
+  completedMonths,
+  totalMonths,
+  shouldInclude,
+});
+
+return shouldInclude;
       })
       .map((plan: any) => {
         const donation = donations.find(
