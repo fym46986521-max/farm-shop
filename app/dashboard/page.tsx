@@ -315,54 +315,83 @@ const recurringDonations = monthlyDonationRecords
   .sort(
     (a: any, b: any) => a.donationTime - b.donationTime
   );
-    // 先保障定期捐款，再依時間分配自由捐款。
-    // 這是試算結果，不會寫入 Firestore。
-    const rows: any[] = [];
-    let remaining = cap;
+    // 定期捐款優先保障每筆 NT$1,000。
+// 接著依捐款時間分配自由捐款。
+// 只有「當月額度不足以完整分配的那一筆」
+// 才會產生待結轉金額。
+const rows: any[] = [];
+let remaining = cap;
 
-    for (const item of recurringDonations) {
-      const allocated = Math.min(1000, remaining);
+// 記錄當月實際分配金額
+let totalAllocated = 0;
 
-      rows.push({
-        ...item,
-        allocatedAmount: allocated,
-        split: allocated < item.originalAmount,
-        carryoverAmount: Math.max(
-          0,
-          item.originalAmount - allocated
-        ),
-      });
+// 先分配定期捐款
+for (const item of recurringDonations) {
+  const originalAmount = Math.max(
+    0,
+    Number(item.originalAmount) || 0
+  );
 
-      remaining -= allocated;
-    }
+  // 定期捐款每筆優先保障 NT$1,000
+  const requiredAmount = Math.min(1000, originalAmount);
 
-    for (const item of freeDonations) {
-      if (remaining <= 0) {
-        rows.push({
-          ...item,
-          allocatedAmount: 0,
-          split: item.originalAmount > 0,
-          carryoverAmount: item.originalAmount,
-        });
+  // 額度足夠就分配 1,000 元；
+  // 不足時，只分配剩餘額度。
+  const allocated = Math.min(
+    requiredAmount,
+    remaining
+  );
 
-        continue;
-      }
+  const carryoverAmount =
+    allocated < requiredAmount
+      ? requiredAmount - allocated
+      : 0;
 
-      const allocated = Math.min(
-        item.originalAmount,
-        remaining
-      );
+  rows.push({
+    ...item,
+    allocatedAmount: allocated,
+    split: carryoverAmount > 0,
+    carryoverAmount,
+  });
 
-      rows.push({
-        ...item,
-        allocatedAmount: allocated,
-        split: allocated < item.originalAmount,
-        carryoverAmount:
-          item.originalAmount - allocated,
-      });
+  remaining -= allocated;
+  totalAllocated += allocated;
+}
 
-      remaining -= allocated;
-    }
+// 再依時間分配自由捐款
+for (const item of freeDonations) {
+  const originalAmount = Math.max(
+    0,
+    Number(item.originalAmount) || 0
+  );
+
+  // 當月額度已用完，後續整筆捐款不列為待結轉。
+  if (remaining <= 0) {
+    continue;
+  }
+
+  const allocated = Math.min(
+    originalAmount,
+    remaining
+  );
+
+  // 只有這筆捐款已進入分配、但額度不足以完整分配時，
+  // 才把超出的金額列為待結轉。
+  const carryoverAmount =
+    allocated < originalAmount
+      ? originalAmount - allocated
+      : 0;
+
+  rows.push({
+    ...item,
+    allocatedAmount: allocated,
+    split: carryoverAmount > 0,
+    carryoverAmount,
+  });
+
+  remaining -= allocated;
+  totalAllocated += allocated;
+}
 
     setMonthlyAllocationRows(rows);
 
