@@ -88,6 +88,26 @@ export default function DashboardPage() {
   const [oneHeartTab, setOneHeartTab] = useState<
   "stats" | "records" | "monthlyPlan"
 >("stats");
+// 每月捐款計畫設定
+const [monthlyPlanYear, setMonthlyPlanYear] = useState(
+  new Date().getFullYear()
+);
+
+const [monthlyPlanMonth, setMonthlyPlanMonth] = useState(
+  new Date().getMonth() + 1
+);
+
+// 每週配送量
+const [weeklyDeliveryKg, setWeeklyDeliveryKg] = useState("50");
+
+// 每週認捐目標
+const [weeklyDonationTarget, setWeeklyDonationTarget] = useState("5000");
+
+// 設定儲存狀態
+const [savingMonthlyPlan, setSavingMonthlyPlan] = useState(false);
+
+// 當月計畫是否已鎖定
+const [monthlyPlanLocked, setMonthlyPlanLocked] = useState(false);
   // 歷史排行榜查詢條件
 const currentYear = new Date().getFullYear();
 // 取得指定年份、月份的週數
@@ -2193,7 +2213,7 @@ if (detailFiles.length > 0) {
 </div>
     </div>
   </div>
-) : (
+) : oneHeartTab === "records" ? (
   <div className="rounded-lg border p-5">
     <h3 className="mb-4 text-lg font-bold">
       📋 每週捐贈紀錄
@@ -2629,7 +2649,137 @@ if (detailFiles.length > 0) {
   </div>
 )}
 </div>
-)}
+) : oneHeartTab === "monthlyPlan" ?(
+  <div className="space-y-6 rounded-xl border p-5">
+  <div>
+    <h3 className="text-xl font-bold text-green-700">
+      📅 每月捐款計畫
+    </h3>
+
+    <p className="mt-2 text-sm text-gray-500">
+      設定每週配送量及認捐目標，設定變更於下個月生效。
+    </p>
+  </div>
+
+  {/* 選擇適用月份 */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div>
+      <label className="mb-2 block font-medium">
+        年度
+      </label>
+
+      <select
+        value={monthlyPlanYear}
+        onChange={(e) =>
+          setMonthlyPlanYear(Number(e.target.value))
+        }
+        className="w-full rounded-lg border p-3"
+      >
+        {Array.from(
+          { length: 10 },
+          (_, i) => new Date().getFullYear() - 2 + i
+        ).map((year) => (
+          <option key={year} value={year}>
+            {year} 年
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <label className="mb-2 block font-medium">
+        月份
+      </label>
+
+      <select
+        value={monthlyPlanMonth}
+        onChange={(e) =>
+          setMonthlyPlanMonth(Number(e.target.value))
+        }
+        className="w-full rounded-lg border p-3"
+      >
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(
+          (month) => (
+            <option key={month} value={month}>
+              {month} 月
+            </option>
+          )
+        )}
+      </select>
+    </div>
+  </div>
+
+  {/* 每週配送量 */}
+  <div>
+    <label className="mb-2 block font-medium">
+      每週配送量（公斤）
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="0.1"
+      value={weeklyDeliveryKg}
+      onChange={(e) =>
+        setWeeklyDeliveryKg(e.target.value)
+      }
+      disabled={monthlyPlanLocked}
+      className="w-full rounded-lg border p-3 disabled:bg-gray-100"
+    />
+  </div>
+
+  {/* 每週認捐目標 */}
+  <div>
+    <label className="mb-2 block font-medium">
+      每週認捐目標（新臺幣）
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="100"
+      value={weeklyDonationTarget}
+      onChange={(e) =>
+        setWeeklyDonationTarget(e.target.value)
+      }
+      disabled={monthlyPlanLocked}
+      className="w-full rounded-lg border p-3 disabled:bg-gray-100"
+    />
+  </div>
+
+  {/* 當月目標摘要 */}
+  <div className="rounded-xl bg-green-50 p-4">
+    <p className="text-sm text-gray-600">
+      選定月份的每週認捐目標
+    </p>
+
+    <p className="mt-1 text-2xl font-bold text-green-700">
+      NT${" "}
+      {Math.max(
+        0,
+        Number(weeklyDonationTarget) || 0
+      ).toLocaleString("zh-TW")}
+    </p>
+
+    <p className="mt-2 text-sm text-gray-500">
+      此金額為每週目標；實際月度上限需依當月配送週次計算。
+    </p>
+  </div>
+
+  <button
+    type="button"
+    disabled={savingMonthlyPlan || monthlyPlanLocked}
+    onClick={() => {
+      alert(
+        "目前只有設定介面，尚未連接 Firebase 儲存功能。"
+      );
+    }}
+    className="w-full rounded-lg bg-green-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {savingMonthlyPlan ? "儲存中..." : "儲存每月計畫"}
+  </button>
+</div>
+) : null}
 
           </div>
         </div>
