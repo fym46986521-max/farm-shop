@@ -230,37 +230,52 @@ const calculateMonthlyAllocation = () => {
     // 只納入所選月份、已確認的自由捐款。
     // 定期捐款另由 monthlyDonationPlans 處理，避免重複計算。
     const freeDonations = donations
-      .filter((item: any) => {
-        if (item.status !== "confirmed") return false;
+  .filter((item: any) => {
+    if (item.status !== "confirmed") return false;
+    if (item.donationType === "monthly") return false;
 
-        if (item.donationType === "monthly") return false;
+    const value = item.confirmedAt || item.createdAt;
 
-        const date = getDonationDate(
-          item.confirmedAt || item.createdAt
-        );
+    let date: Date | null = null;
 
-        if (!date) return false;
+    if (value?.toDate) {
+      date = value.toDate();
+    } else if (value instanceof Date) {
+      date = value;
+    } else if (value) {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) date = parsed;
+    }
 
-        return (
-          date.getFullYear() === year &&
-          date.getMonth() + 1 === month
-        );
-      })
-      .map((item: any) => ({
-        id: item.id,
-        donationTime: getDonationTime(item),
-        donorName: String(item.donorName || "未提供姓名"),
-        donationType: "自由捐款",
-        originalAmount: Math.max(
-          0,
-          Number(item.amount) || 0
-        ),
-      }))
-      .filter((item: any) => item.originalAmount > 0)
-      .sort(
-        (a: any, b: any) =>
-          a.donationTime - b.donationTime
-      );
+    if (!date) return false;
+
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() + 1 === month
+    );
+  })
+  .map((item: any) => ({
+    id: item.id,
+    donationTime: (() => {
+      const value = item.confirmedAt || item.createdAt;
+
+      if (value?.toMillis) return value.toMillis();
+      if (value?.toDate) return value.toDate().getTime();
+
+      const date = value instanceof Date
+        ? value
+        : new Date(value);
+
+      return Number.isNaN(date.getTime())
+        ? 0
+        : date.getTime();
+    })(),
+    donorName: String(item.donorName || "未提供姓名"),
+    donationType: "自由捐款",
+    originalAmount: Math.max(0, Number(item.amount) || 0),
+  }))
+  .filter((item: any) => item.originalAmount > 0)
+  .sort((a: any, b: any) => a.donationTime - b.donationTime);
 
     const selectedMonth = monthKey;
 
