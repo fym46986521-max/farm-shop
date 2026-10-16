@@ -60,7 +60,27 @@ function SortableItem({ item, children }: any) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [monthlyDonationPlans, setMonthlyDonationPlans] = useState<any[]>([]);
+  // 從 Firebase 讀取每月定期捐款排程
+const loadMonthlyDonationPlans = async () => {
+  try {
+    const snapshot = await getDocs(
+      collection(db, "monthlyDonationPlans")
+    );
 
+    const plans = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    setMonthlyDonationPlans(plans);
+
+    console.log("已載入每月定期捐款排程：", plans);
+  } catch (error) {
+    console.error("讀取每月定期捐款排程失敗：", error);
+    alert("讀取定期捐款排程失敗，請檢查 Firebase 權限。");
+  }
+};
   const [products, setProducts] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -227,13 +247,31 @@ const calculateMonthlyAllocation = () => {
       );
 
     // 篩選指定月份、已審核且已到開始繳費月份的定期捐款
-const recurringDonations = monthlyDonationRecords
-  .filter((item: any) => {
-    // 先確認原始捐款存在且已通過審核
+// 從定期捐款排程取得有效的定期捐款人
+const selectedMonth =
+  `${year}-${String(month).padStart(2, "0")}`;
+
+const recurringDonations = monthlyDonationPlans
+  .filter((plan: any) => {
+    // 只處理仍在執行中的定期捐款
+    if (plan.status !== "active") {
+      return false;
+    }
+
+    // 排除已完成全部期數的排程
+    const completedMonths = Number(plan.completedMonths ?? 0);
+    const totalMonths = Number(plan.totalMonths ?? 12);
+
+    if (completedMonths >= totalMonths) {
+      return false;
+    }
+
+    // 找出對應的原始捐款
     const donation = donations.find(
-      (d: any) => d.id === item.donationId
+      (d: any) => d.id === plan.donationId
     );
 
+    // 原始捐款必須存在且已通過審核
     if (
       !donation ||
       donation.status !== "confirmed" ||
@@ -242,9 +280,7 @@ const recurringDonations = monthlyDonationRecords
       return false;
     }
 
-    // 取得開始繳費月份：
-    // 優先使用後台設定的 startMonth；
-    // 沒設定時，使用原始捐款建立日期。
+    // 取得開始繳費月份
     const createdAt = donation.createdAt;
 
     let defaultStartMonth = "";
@@ -267,51 +303,71 @@ const recurringDonations = monthlyDonationRecords
       }
     }
 
-    const startMonth =
-      String(donation.startMonth || defaultStartMonth);
+    const startMonth = String(
+      donation.startMonth || defaultStartMonth
+    );
 
-    // 將開始月份與目前選擇的月份轉成 YYYY-MM 比較
-    const selectedMonth =
-      `${year}-${String(month).padStart(2, "0")}`;
-
+    // 尚未到開始繳費月份，不列入
     if (startMonth && selectedMonth < startMonth) {
       return false;
     }
 
-    // 只顯示目前選擇月份的紀錄
-    const recordMonth = String(item.month || "");
+    // 12 期已完成以外，還要確認該排程在所選月份仍有效。
+    // 以 YYYY-MM 比較月份，避免直接比較 Timestamp。
+    const nextRunAt = plan.nextRunAt;
 
-    return (
-      recordMonth === monthKey ||
-      recordMonth === selectedMonth
-    );
-  })
-  .map((item: any) => ({
-    id: item.id,
+    if (nextRunAt) {
+      const nextDate = nextRunAt.toDate
+        ? nextRunAt.toDate()
+        : new Date(nextRunAt);
 
-    donationTime: (() => {
-      const value = item.confirmedAt || item.createdAt;
+      if (!Number.isNaN(nextDate.getTime())) {
+        const nextRunMonth =
+          `${nextDate.getFullYear()}-${String(
+            nextDate.getMonth() + 1
+          ).padStart(2, "0")}`;
 
-      if (value?.toMillis) return value.toMillis();
-      if (value?.toDate) return value.toDate().getTime();
-      if (value instanceof Date) return value.getTime();
-
-      if (
-        typeof value === "string" ||
-        typeof value === "number"
-      ) {
-        const parsed = new Date(value).getTime();
-
-        return Number.isNaN(parsed) ? 0 : parsed;
+        if (selectedMonth > nextRunMonth) {
+          return false;
+        }
       }
+    }
 
-      return 0;
-    })(),
+    return true;
+  })
+  .map((plan: any) => {
+    const donation = donations.find(
+      (d: any) => d.id === plan.donationId
+    );
 
-    donorName: String(item.donorName || "未提供姓名"),
-    donationType: "每月定期捐款",
-    originalAmount: Math.max(0, Number(item.amount) || 0),
-  }))
+    const createdAt = donation?.confirmedAt || donation?.createdAt;
+
+    let donationTime = 0;
+
+    if (createdAt?.toMillis) {
+      donationTime = createdAt.toMillis();
+    } else if (createdAt?.toDate) {
+      donationTime = createdAt.toDate().getTime();
+    } else if (createdAt) {
+      const parsed = new Date(createdAt).getTime();
+
+      donationTime = Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    return {
+      id: plan.id,
+      donationId: plan.donationId,
+      donationTime,
+      donorName: String(
+        plan.donorName || donation?.donorName || "未提供姓名"
+      ),
+      donationType: "每月定期捐款",
+      originalAmount: Math.max(
+        0,
+        Number(plan.monthlyAmount) || 1000
+      ),
+    };
+  })
   .sort(
     (a: any, b: any) => a.donationTime - b.donationTime
   );
@@ -608,6 +664,7 @@ const [savingWeeklyEdit, setSavingWeeklyEdit] = useState(false);
   fetchWeeklyDonationRecords();
   fetchDonations();
   fetchMonthlyDonationRecords();
+  fetchMonthlyDonationPlans();
 }, [showOneHeart]);
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
@@ -828,6 +885,27 @@ const fetchMonthlyDonationRecords = async () => {
   } catch (error) {
     console.error("讀取每月定期捐款紀錄失敗：", error);
     alert("讀取每月定期捐款紀錄失敗，請檢查 Firebase 權限。");
+  }
+};
+// 讀取每月定期捐款排程
+const fetchMonthlyDonationPlans = async () => {
+  try {
+    const snapshot = await getDocs(
+      collection(db, "monthlyDonationPlans")
+    );
+
+    const plans = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    setMonthlyDonationPlans(plans);
+
+    console.log("已載入定期捐款排程：", plans);
+  } catch (error) {
+    console.error("讀取定期捐款排程失敗：", error);
+
+    alert("讀取定期捐款排程失敗，請檢查 Firebase 權限。");
   }
 };
 // 讀取顧客認捐資料，最新資料排最前面
