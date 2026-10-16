@@ -108,6 +108,18 @@ const [savingMonthlyPlan, setSavingMonthlyPlan] = useState(false);
 
 // 當月計畫是否已鎖定
 const [monthlyPlanLocked, setMonthlyPlanLocked] = useState(false);
+
+// 每月定期捐款紀錄
+const [monthlyDonationRecords, setMonthlyDonationRecords] = useState<any[]>([]);
+
+// 每月分配清單
+const [monthlyAllocationRows, setMonthlyAllocationRows] = useState<any[]>([]);
+
+// 每月分配清單載入狀態
+const [monthlyAllocationLoading, setMonthlyAllocationLoading] = useState(false);
+
+// 每月分配上限
+const [monthlyAllocationCap, setMonthlyAllocationCap] = useState(0);
 // 切換年月時，自動載入該月份的設定
 useEffect(() => {
   if (!showOneHeart || oneHeartTab !== "monthlyPlan") {
@@ -144,7 +156,164 @@ const getWeeksInMonth = (year: number, month: number) => {
       (7 * 24 * 60 * 60 * 1000)
   ) + 1;
 };
+// 試算指定月份的捐款分配
+const calculateMonthlyAllocation = () => {
+  setMonthlyAllocationLoading(true);
 
+  try {
+    const year = monthlyPlanYear;
+    const month = monthlyPlanMonth;
+
+    const monthKey =
+      `${year}-${String(month).padStart(2, "0")}`;
+
+    // 以星期一為每週起始日計算日曆週次。
+    // 正式上線前仍須確認這是否等於農場實際配送次數。
+    const deliveryWeeks = getWeeksInMonth(year, month);
+
+    const weeklyTarget = Math.max(
+      0,
+      Number(weeklyDonationTarget) || 0
+    );
+
+    const cap = weeklyTarget * deliveryWeeks;
+
+    setMonthlyAllocationCap(cap);
+
+    // 取得捐款建立時間
+    const getDonationTime = (item: any): number => {
+      const value = item.confirmedAt || item.createdAt;
+
+      if (value?.toMillis) return value.toMillis();
+      if (value?.toDate) return value.toDate().getTime();
+      if (value instanceof Date) return value.getTime();
+
+      if (typeof value === "string" || typeof value === "number") {
+        const parsed = new Date(value).getTime();
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      return 0;
+    };
+
+    // 篩選已確認的自由捐款。
+    // 此階段只試算捐款原始金額，不修改 donations。
+    const freeDonations = donations
+      .filter(
+        (item: any) =>
+          item.status === "confirmed" &&
+          item.donationType !== "monthly"
+      )
+      .map((item: any) => ({
+        id: item.id,
+        donationTime: getDonationTime(item),
+        donorName: String(item.donorName || "未提供姓名"),
+        donationType: "自由捐款",
+        originalAmount: Math.max(0, Number(item.amount) || 0),
+      }))
+      .filter((item: any) => {
+        if (!item.donationTime) return false;
+
+        const date = new Date(item.donationTime);
+
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() + 1 === month
+        );
+      })
+      .sort(
+        (a: any, b: any) =>
+          a.donationTime - b.donationTime
+      );
+
+    // 篩選指定月份的定期捐款紀錄。
+    const recurringDonations = monthlyDonationRecords
+      .filter(
+        (item: any) =>
+          item.month === monthKey ||
+          item.month === `${year}-${month}`
+      )
+      .map((item: any) => ({
+        id: item.id,
+        donationTime: getDonationTime(item),
+        donorName: String(item.donorName || "未提供姓名"),
+        donationType: "每月定期捐款",
+        originalAmount: Math.max(0, Number(item.amount) || 0),
+      }))
+      .sort(
+        (a: any, b: any) =>
+          a.donationTime - b.donationTime
+      );
+
+    // 先保障定期捐款，再依時間分配自由捐款。
+    // 這是試算結果，不會寫入 Firestore。
+    const rows: any[] = [];
+    let remaining = cap;
+
+    for (const item of recurringDonations) {
+      const allocated = Math.min(1000, remaining);
+
+      rows.push({
+        ...item,
+        allocatedAmount: allocated,
+        split: allocated < item.originalAmount,
+        carryoverAmount: Math.max(
+          0,
+          item.originalAmount - allocated
+        ),
+      });
+
+      remaining -= allocated;
+    }
+
+    for (const item of freeDonations) {
+      if (remaining <= 0) {
+        rows.push({
+          ...item,
+          allocatedAmount: 0,
+          split: item.originalAmount > 0,
+          carryoverAmount: item.originalAmount,
+        });
+
+        continue;
+      }
+
+      const allocated = Math.min(
+        item.originalAmount,
+        remaining
+      );
+
+      rows.push({
+        ...item,
+        allocatedAmount: allocated,
+        split: allocated < item.originalAmount,
+        carryoverAmount:
+          item.originalAmount - allocated,
+      });
+
+      remaining -= allocated;
+    }
+
+    setMonthlyAllocationRows(rows);
+
+    alert(
+      `試算完成！\n` +
+      `月份：${monthKey}\n` +
+      `配送週次：${deliveryWeeks} 週\n` +
+      `認捐上限：NT$${cap.toLocaleString("zh-TW")}\n` +
+      `本次試算分配：NT$${rows.reduce(
+        (sum: number, item: any) =>
+          sum + item.allocatedAmount,
+        0
+      ).toLocaleString("zh-TW")}`
+    );
+  } catch (error) {
+    console.error("每月捐款分配試算失敗：", error);
+    alert("試算失敗，請檢查捐款資料。");
+  } finally {
+    setMonthlyAllocationLoading(false);
+  }
+};
 // 取得指定月份的每週排行榜
 const getHistoricalWeeklyRanking = () => {
   const year = weeklyRankYear;
@@ -339,6 +508,7 @@ const [savingWeeklyEdit, setSavingWeeklyEdit] = useState(false);
   fetchDonationOrganizations();
   fetchWeeklyDonationRecords();
   fetchDonations();
+  fetchMonthlyDonationRecords();
 }, [showOneHeart]);
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
@@ -541,6 +711,24 @@ const handleSaveWeeklyDonation = async () => {
     );
   } finally {
     setSavingDonationRecord(false);
+  }
+};
+// 讀取每月定期捐款紀錄
+const fetchMonthlyDonationRecords = async () => {
+  try {
+    const snapshot = await getDocs(
+      collection(db, "monthlyDonationRecords")
+    );
+
+    const records = snapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+    }));
+
+    setMonthlyDonationRecords(records);
+  } catch (error) {
+    console.error("讀取每月定期捐款紀錄失敗：", error);
+    alert("讀取每月定期捐款紀錄失敗，請檢查 Firebase 權限。");
   }
 };
 // 讀取顧客認捐資料，最新資料排最前面
@@ -2918,7 +3106,90 @@ const handleSaveMonthlyPlan = async () => {
       此金額為每週目標；實際月度上限需依當月配送週次計算。
     </p>
   </div>
+  <button
+  type="button"
+  disabled={monthlyAllocationLoading}
+  onClick={calculateMonthlyAllocation}
+  className="w-full rounded-lg border border-green-600 px-5 py-3 font-bold text-green-700 hover:bg-green-50 disabled:opacity-50"
+>
+  {monthlyAllocationLoading
+    ? "計算中..."
+    : "試算本月捐款分配"}
+</button>
+{/* 每月捐款分配清單 */}
+<div className="rounded-xl border p-4">
+  <h3 className="mb-3 text-lg font-bold">
+    📋 每月捐款分配清單
+  </h3>
 
+  <div className="mb-4 rounded-lg bg-green-50 p-3">
+    <p className="text-sm text-gray-600">
+      本月認捐上限
+    </p>
+
+    <p className="text-2xl font-bold text-green-700">
+      NT${monthlyAllocationCap.toLocaleString("zh-TW")}
+    </p>
+  </div>
+
+  {monthlyAllocationRows.length === 0 ? (
+    <p className="py-6 text-center text-gray-500">
+      請先點擊「試算本月捐款分配」。
+    </p>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] border-collapse text-sm">
+        <thead>
+          <tr className="bg-gray-100 text-left">
+            <th className="border p-3">捐贈時間</th>
+            <th className="border p-3">捐贈人</th>
+            <th className="border p-3">類別</th>
+            <th className="border p-3">原始金額</th>
+            <th className="border p-3">本月分配</th>
+            <th className="border p-3">是否拆分</th>
+            <th className="border p-3">待結轉金額</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {monthlyAllocationRows.map((item: any) => (
+            <tr key={item.id}>
+              <td className="border p-3">
+                {item.donationTime
+                  ? new Date(item.donationTime).toLocaleString("zh-TW")
+                  : "—"}
+              </td>
+
+              <td className="border p-3">
+                {item.donorName}
+              </td>
+
+              <td className="border p-3">
+                {item.donationType}
+              </td>
+
+              <td className="border p-3">
+                NT${item.originalAmount.toLocaleString("zh-TW")}
+              </td>
+
+              <td className="border p-3 font-bold">
+                NT${item.allocatedAmount.toLocaleString("zh-TW")}
+              </td>
+
+              <td className="border p-3">
+                {item.split ? "是" : "否"}
+              </td>
+
+              <td className="border p-3">
+                NT${item.carryoverAmount.toLocaleString("zh-TW")}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
   <button
   type="button"
   disabled={savingMonthlyPlan || monthlyPlanLocked}
