@@ -3487,11 +3487,11 @@ const handleSaveMonthlyPlan = async () => {
               </td>
 
               <td className="border p-3">
-                NT${item.originalAmount.toLocaleString("zh-TW")}
+                NT${(Number(item.originalAmount) || 0).toLocaleString("zh-TW")}
               </td>
 
               <td className="border p-3 font-bold">
-                NT${item.allocatedAmount.toLocaleString("zh-TW")}
+                NT${(Number(item.carryoverAmount) || 0).toLocaleString("zh-TW")}
               </td>
 
               <td className="border p-3">
