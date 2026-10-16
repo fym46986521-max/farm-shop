@@ -252,27 +252,21 @@ console.table(
     const freeDonations = donations
   .filter((item: any) => {
     if (item.status !== "confirmed") return false;
-    if (item.donationType === "monthly") return false;
+
+if (item.donationType !== "free") return false;
 
     const value = item.confirmedAt || item.createdAt;
 
     let date: Date | null = null;
 
-    if (value?.toDate) {
-      date = value.toDate();
-    } else if (value instanceof Date) {
-      date = value;
-    } else if (value) {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) date = parsed;
-    }
+    const date = getDonationDate(value);
 
-    if (!date) return false;
+if (!date) return false;
 
-    return (
-      date.getFullYear() === year &&
-      date.getMonth() + 1 === month
-    );
+return (
+  date.getFullYear() === year &&
+  date.getMonth() + 1 === month
+);
   })
   .map((item: any) => ({
     id: item.id,
