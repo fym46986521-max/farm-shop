@@ -361,7 +361,15 @@ console.log(
         const donation = donations.find(
           (item: any) => item.id === plan.donationId
         );
-
+        console.log("[定期捐款排除檢查]", {
+  planId: plan.id,
+  donationId: plan.donationId,
+  donationFound: Boolean(donation),
+  donationStatus: donation?.status,
+  donationType: donation?.donationType,
+  startMonth: donation?.startMonth,
+  selectedMonth,
+});
         if (
           !donation ||
           donation.status !== "confirmed" ||
