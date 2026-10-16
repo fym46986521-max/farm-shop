@@ -217,34 +217,26 @@ const calculateMonthlyAllocation = () => {
     };
 
     // 篩選已確認的自由捐款。
-    // 此階段只試算捐款原始金額，不修改 donations。
-    const freeDonations = donations
-      .filter(
-        (item: any) =>
-          item.status === "confirmed" &&
-          item.donationType !== "monthly"
-      )
-      .map((item: any) => ({
-        id: item.id,
-        donationTime: getDonationTime(item),
-        donorName: String(item.donorName || "未提供姓名"),
-        donationType: "自由捐款",
-        originalAmount: Math.max(0, Number(item.amount) || 0),
-      }))
-      .filter((item: any) => {
-        if (!item.donationTime) return false;
-
-        const date = new Date(item.donationTime);
-
-        return (
-          date.getFullYear() === year &&
-          date.getMonth() + 1 === month
-        );
-      })
-      .sort(
-        (a: any, b: any) =>
-          a.donationTime - b.donationTime
-      );
+// 暫時先列出所有已確認的自由捐款，
+// 後續再依已分配紀錄扣除，避免重複分配。
+const freeDonations = donations
+  .filter(
+    (item: any) =>
+      item.status === "confirmed" &&
+      item.donationType !== "monthly"
+  )
+  .map((item: any) => ({
+    id: item.id,
+    donationTime: getDonationTime(item),
+    donorName: String(item.donorName || "未提供姓名"),
+    donationType: "自由捐款",
+    originalAmount: Math.max(0, Number(item.amount) || 0),
+  }))
+  .filter((item: any) => item.donationTime > 0)
+  .sort(
+    (a: any, b: any) =>
+      a.donationTime - b.donationTime
+  );
 
     // 篩選指定月份、已審核且已到開始繳費月份的定期捐款
 // 從定期捐款排程取得有效的定期捐款人
@@ -665,6 +657,7 @@ const [savingWeeklyEdit, setSavingWeeklyEdit] = useState(false);
   fetchDonations();
   fetchMonthlyDonationRecords();
   fetchMonthlyDonationPlans();
+  loadMonthlyDonationPlans();
 }, [showOneHeart]);
   const fetchProducts = async () => {
     const snapshot = await getDocs(collection(db, "products"));
@@ -2584,10 +2577,7 @@ const handleSaveMonthlyPlan = async () => {
         </label>
 
         <div className="w-full min-w-0">
-  <label className="mb-1 block text-xs text-gray-500">
-    開始繳費月份
-  </label>
-
+  
   <input
     type="month"
     value={
