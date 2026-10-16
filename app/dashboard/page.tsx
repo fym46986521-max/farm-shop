@@ -199,59 +199,33 @@ const calculateMonthlyAllocation = () => {
     setMonthlyAllocationCap(cap);
 
     const getDonationDate = (value: any): Date | null => {
-  if (!value) return null;
+  if (value == null) return null;
+
+  let date: Date;
 
   // Firebase Timestamp
   if (typeof value.toDate === "function") {
-    const date = value.toDate();
-
-    return date instanceof Date &&
-      !Number.isNaN(date.getTime())
-      ? date
-      : null;
+    date = value.toDate();
   }
-
+  // Firebase Timestamp 的 seconds 格式
+  else if (typeof value.seconds === "number") {
+    date = new Date(value.seconds * 1000);
+  }
   // JavaScript Date
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime())
-      ? null
-      : value;
+  else if (value instanceof Date) {
+    date = value;
   }
-
-  // Timestamp 的毫秒
-  if (typeof value.toMillis === "function") {
-    const date = new Date(value.toMillis());
-
-    return Number.isNaN(date.getTime())
-      ? null
-      : date;
-  }
-
-  // Firestore Timestamp 的一般物件格式
-  if (
-    typeof value === "object" &&
-    typeof value.seconds === "number"
-  ) {
-    const date = new Date(value.seconds * 1000);
-
-    return Number.isNaN(date.getTime())
-      ? null
-      : date;
-  }
-
-  // 字串或數字
-  if (
+  // 日期字串或毫秒時間戳
+  else if (
     typeof value === "string" ||
     typeof value === "number"
   ) {
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-      ? null
-      : date;
+    date = new Date(value);
+  } else {
+    return null;
   }
 
-  return null;
+  return Number.isNaN(date.getTime()) ? null : date;
 };
     const getDonationTime = (item: any): number => {
       const date = getDonationDate(
@@ -420,10 +394,11 @@ console.log(
         const nextRunDate = getDonationDate(plan.nextRunAt);
 
 if (!nextRunDate) {
-  console.log("[定期捐款] 排除：沒有下一期日期", {
+  console.warn("[定期捐款] 下一期日期無法解析", {
     planId: plan.id,
-    selectedMonth,
+    nextRunAt: plan.nextRunAt,
   });
+
   return false;
 }
 
@@ -434,13 +409,10 @@ const nextRunMonth =
 
 const shouldInclude = nextRunMonth === selectedMonth;
 
-console.log("[定期捐款] 月份檢查", {
+console.log("[定期捐款] 最終月份判斷", {
   planId: plan.id,
   selectedMonth,
-  startMonth,
   nextRunMonth,
-  completedMonths,
-  totalMonths,
   shouldInclude,
 });
 
