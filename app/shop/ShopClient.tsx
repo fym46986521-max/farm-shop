@@ -1946,6 +1946,29 @@ if (!liff.isLoggedIn()) {
                       <div className="mt-1 text-lg font-bold text-gray-900">
                         {formatDonationDate(record.createdAt)}
                       </div>
+                      {/* 預計開始投入公益月份 */}
+                    {record.donationType === "monthly" && (
+                      <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                        <div className="text-sm text-blue-700">
+                          🗓️ 預計開始投入公益
+                        </div>
+
+                        <div className="mt-1 text-base font-bold text-blue-800">
+                          {record.startMonth
+                            ? (() => {
+                                const [year, month] =
+                                  record.startMonth.split("-");
+
+                                return `${year} 年 ${Number(month)} 月`;
+                              })()
+                            : "開始月份待確認"}
+                        </div>
+
+                        <p className="mt-1 text-xs leading-5 text-blue-700">
+                          每月定期捐款將依設定月份開始安排，每月 NT$1,000。
+                        </p>
+                      </div>
+                    )}
                     </div>
 
                     <span
