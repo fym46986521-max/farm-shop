@@ -2714,66 +2714,64 @@ const targetMonthKey =
     <span>{item.donorName || "未填寫"}</span>
 
     {item.donationType === "monthly" && (
-      <div className="min-w-[150px]">
-        <label className="mb-1 block text-xs text-gray-500">
-          開始繳費月份
-        </label>
+      <div className="w-full min-w-0 max-w-[190px]">
+  <label className="mb-2 block text-xs font-medium text-gray-500">
+    開始繳費月份
+  </label>
 
-        <div className="w-full min-w-0">
-  
-  <input
-    type="month"
-    value={
-      item.startMonth ||
-      (item.createdAt?.toDate
-        ? (() => {
-            const date = item.createdAt.toDate();
-
-            return `${date.getFullYear()}-${String(
-              date.getMonth() + 1
-            ).padStart(2, "0")}`;
-          })()
-        : new Date().toISOString().slice(0, 7))
-    }
-    onChange={(event) => {
-      const startMonth = event.target.value;
-
-      setDonations((prev) =>
-        prev.map((donation) =>
-          donation.id === item.id
-            ? { ...donation, startMonth }
-            : donation
-        )
-      );
-    }}
-    className="block w-full min-w-0 rounded-md border border-gray-300 px-2 py-2 text-sm"
-    aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
-  />
-
-  <button
-    type="button"
-    onClick={() =>
-      handleSaveDonationStartMonth(
-        item.id,
+  <div className="flex flex-col gap-2">
+    <input
+      type="month"
+      value={
         item.startMonth ||
-          (item.createdAt?.toDate
-            ? (() => {
-                const date = item.createdAt.toDate();
+        (item.createdAt?.toDate
+          ? (() => {
+              const date = item.createdAt.toDate();
 
-                return `${date.getFullYear()}-${String(
-                  date.getMonth() + 1
-                ).padStart(2, "0")}`;
-              })()
-            : new Date().toISOString().slice(0, 7))
-      )
-    }
-    className="mt-2 w-full rounded-md bg-green-600 px-2 py-1.5 text-xs font-bold text-white hover:bg-green-700"
-  >
-    儲存月份
-  </button>
+              return `${date.getFullYear()}-${String(
+                date.getMonth() + 1
+              ).padStart(2, "0")}`;
+            })()
+          : new Date().toISOString().slice(0, 7))
+      }
+      onChange={(event) => {
+        const startMonth = event.target.value;
+
+        setDonations((prev) =>
+          prev.map((donation) =>
+            donation.id === item.id
+              ? { ...donation, startMonth }
+              : donation
+          )
+        );
+      }}
+      aria-label={`${item.donorName || "捐款人"}的開始繳費月份`}
+      className="block h-11 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
+    />
+
+    <button
+      type="button"
+      onClick={() =>
+        handleSaveDonationStartMonth(
+          item.id,
+          item.startMonth ||
+            (item.createdAt?.toDate
+              ? (() => {
+                  const date = item.createdAt.toDate();
+
+                  return `${date.getFullYear()}-${String(
+                    date.getMonth() + 1
+                  ).padStart(2, "0")}`;
+                })()
+              : new Date().toISOString().slice(0, 7))
+        )
+      }
+      className="flex h-10 w-full items-center justify-center rounded-lg bg-green-600 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      儲存月份
+    </button>
+  </div>
 </div>
-        
-      </div>
     )}
   </div>
 </td>
