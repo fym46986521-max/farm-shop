@@ -399,17 +399,23 @@ const recurringDonations = monthlyDonationPlans
         nextRunDate.getMonth() + 1
       ).padStart(2, "0")}`;
 
-    const shouldInclude = nextRunMonth === selectedMonth;
+    // 判斷所選月份是否已達開始繳費月份
+const shouldInclude =
+  Boolean(startMonth) &&
+  selectedMonth >= startMonth &&
+  completedMonths < totalMonths;
 
-    console.log("[定期捐款] 月份判斷", {
-      planId: plan.id,
-      selectedMonth,
-      startMonth,
-      nextRunMonth,
-      shouldInclude,
-    });
+console.log("[定期捐款] 月份判斷", {
+  planId: plan.id,
+  selectedMonth,
+  startMonth,
+  nextRunMonth,
+  completedMonths,
+  totalMonths,
+  shouldInclude,
+});
 
-    return shouldInclude;
+return shouldInclude;
   })
   .map((plan: any) => {
     const donation = donations.find(
