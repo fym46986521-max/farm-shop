@@ -259,13 +259,11 @@ console.table(
 );
     const freeDonations = donations
   .filter((item: any) => {
-    // 只處理已確認的捐款
-    if (item.status !== "confirmed") {
-      return false;
-    }
-
-    // 只處理自由捐款
-    if (item.donationType !== "free") {
+    // 只處理已確認的自由捐款
+    if (
+      item.status !== "confirmed" ||
+      item.donationType !== "free"
+    ) {
       return false;
     }
 
@@ -274,11 +272,9 @@ console.table(
       item.confirmedAt || item.createdAt
     );
 
-    if (!date) {
-      return false;
-    }
+    if (!date) return false;
 
-    // 必須符合目前選取的年份與月份
+    // 只納入所選月份的自由捐款
     return (
       date.getFullYear() === Number(year) &&
       date.getMonth() + 1 === Number(month)
@@ -291,6 +287,8 @@ console.table(
       item.donorName || "未提供姓名"
     ),
     donationType: "自由捐款",
+
+    // 自由捐款的原始金額就是實際捐款金額
     originalAmount: Math.max(
       0,
       Number(item.amount) || 0
@@ -456,31 +454,34 @@ originalAmount: Math.max(
 
 let remaining = cap;
 
-// 第一優先：定期捐款
-// 每筆固定分配 NT$1,000，若本月額度不足，剩餘部分列為待結轉。
+// 第一優先：定期捐款，每筆每月固定分配 NT$1,000
 for (const item of recurringDonations) {
   const originalAmount = Math.max(
     0,
-    Number(item.originalAmount) || 1000
+    Number(item.originalAmount) || 0
   );
 
-  const requiredAmount = 1000;
+  if (originalAmount <= 0) continue;
+
+  // 當月剩餘承諾餘額不足 1,000 時，只分配剩餘金額
+  const requiredAmount = Math.min(1000, originalAmount);
+
+  // 本月可用額度不足時，不超過剩餘額度
   const allocated = Math.min(requiredAmount, remaining);
 
   const carryoverAmount = Math.max(
     0,
-    requiredAmount - allocated
+    originalAmount - allocated
   );
 
   rows.push({
     ...item,
-    originalAmount,
     allocatedAmount: allocated,
     split: carryoverAmount > 0,
     carryoverAmount,
   });
 
-  remaining = Math.max(0, remaining - allocated);
+  remaining -= allocated;
 }
 
 // 第二優先：自由捐款
