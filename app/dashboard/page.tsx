@@ -426,29 +426,37 @@ return shouldInclude;
     );
 
     return {
-      id: plan.id,
-      donationId: plan.donationId,
-      donationTime: donationDate
-        ? donationDate.getTime()
-        : 0,
-      donorName: String(
-        plan.donorName ||
-          donation?.donorName ||
-          "未提供姓名"
-      ),
-      donationType: "每月定期捐款",
-      // 當月扣款前餘額
-// 當月扣款前餘額：每月定期捐款總額減去已完成期數
-originalAmount: Math.max(
-  0,
-  (Number(plan.monthlyAmount) || 1000) *
-    Math.max(
-      0,
-      Number(plan.totalMonths ?? 12) -
-        Number(plan.completedMonths ?? 0)
-    )
-),
-    };
+  id: plan.id,
+  donationId: plan.donationId,
+
+  donationTime: donationDate
+    ? donationDate.getTime()
+    : 0,
+
+  donorName: String(
+    plan.donorName ||
+      donation?.donorName ||
+      "未提供姓名"
+  ),
+
+  donationType: "每月定期捐款",
+
+  // 當月扣款前餘額
+  // 12 月才開始扣款：顯示完整 12,000 元
+  // 11 月已扣過一次：顯示剩餘 11,000 元
+  originalAmount: Math.max(
+    0,
+    (Number(plan.monthlyAmount) || 1000) *
+      Math.max(
+        0,
+        Number(plan.totalMonths ?? 12) -
+          Number(plan.completedMonths ?? 0) +
+          (String(donation?.startMonth || "") === selectedMonth
+            ? 1
+            : 0)
+      )
+  ),
+};
   })
   .sort(
     (a: any, b: any) =>
