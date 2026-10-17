@@ -403,7 +403,6 @@ const recurringDonations = monthlyDonationPlans
 const shouldInclude =
   Boolean(startMonth) &&
   selectedMonth >= startMonth &&
-  nextRunMonth === selectedMonth &&
   completedMonths < totalMonths;
 
 console.log("[定期捐款] 月份判斷", {
