@@ -399,7 +399,8 @@ const recurringDonations = monthlyDonationPlans
         nextRunDate.getMonth() + 1
       ).padStart(2, "0")}`;
 
-    // 必須同時符合開始月份、下一期執行月份及剩餘期數
+    // 定期捐款從開始月份起，只要尚未完成全部期數，
+// 就納入所選月份，不再要求 nextRunAt 必須等於所選月份。
 const shouldInclude =
   Boolean(startMonth) &&
   selectedMonth >= startMonth &&
@@ -438,10 +439,12 @@ return shouldInclude;
           "未提供姓名"
       ),
       donationType: "每月定期捐款",
-      originalAmount: Math.max(
-        0,
-        Number(plan.monthlyAmount) || 1000
-      ),
+      // 當月扣款前餘額
+originalAmount: Math.max(
+  0,
+  (Number(plan.monthlyAmount) || 12000) -
+    Number(plan.completedMonths ?? 0) * 1000
+),
     };
   })
   .sort(
