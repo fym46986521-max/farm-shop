@@ -438,10 +438,15 @@ return shouldInclude;
       ),
       donationType: "每月定期捐款",
       // 當月扣款前餘額
+// 當月扣款前餘額：每月定期捐款總額減去已完成期數
 originalAmount: Math.max(
   0,
-  (Number(plan.monthlyAmount) || 12000) -
-    Number(plan.completedMonths ?? 0) * 1000
+  (Number(plan.monthlyAmount) || 1000) *
+    Math.max(
+      0,
+      Number(plan.totalMonths ?? 12) -
+        Number(plan.completedMonths ?? 0)
+    )
 ),
     };
   })
@@ -3626,7 +3631,7 @@ const targetMonthKey =
               </td>
 
               <td className="border p-3 font-bold">
-                NT${(Number(item.carryoverAmount) || 0).toLocaleString("zh-TW")}
+                NT${(Number(item.allocatedAmount) || 0).toLocaleString("zh-TW")}
               </td>
 
               <td className="border p-3">
