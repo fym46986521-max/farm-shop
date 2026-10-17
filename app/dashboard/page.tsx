@@ -317,138 +317,131 @@ console.log(
 
     const selectedMonth = monthKey;
 
-    // 定期捐款：只納入下一期應於所選月份執行的有效排程。
-    const recurringDonations = monthlyDonationPlans
-      .filter((plan: any) => {
-        if (plan.status !== "active") return false;
+    // 定期捐款：依照所選月份及下一期執行日期篩選
+const recurringDonations = monthlyDonationPlans
+  .filter((plan: any) => {
+    // 1. 只處理有效排程
+    if (plan.status !== "active") {
+      return false;
+    }
 
-        const completedMonths = Number(
-          plan.completedMonths ?? 0
-        );
+    const completedMonths = Number(plan.completedMonths ?? 0);
+    const totalMonths = Number(plan.totalMonths ?? 12);
 
-        const totalMonths = Number(
-          plan.totalMonths ?? 12
-        );
+    // 已完成全部期數，不再分配
+    if (completedMonths >= totalMonths) {
+      return false;
+    }
 
-        if (completedMonths >= totalMonths) return false;
+    // 2. 找出原始捐款資料
+    const donation = donations.find(
+      (item: any) => item.id === plan.donationId
+    );
 
-        const donation = donations.find(
-          (item: any) => item.id === plan.donationId
-        );
-        console.log("[定期捐款排除檢查]", {
-  planId: plan.id,
-  donationId: plan.donationId,
-  donationFound: Boolean(donation),
-  donationStatus: donation?.status,
-  donationType: donation?.donationType,
-  startMonth: donation?.startMonth,
-  selectedMonth,
-});
-        if (
-          !donation ||
-          donation.status !== "confirmed" ||
-          donation.donationType !== "monthly"
-        ) {
-          return false;
-        }
+    if (!donation) {
+      console.warn("[定期捐款] 找不到原始捐款", {
+        planId: plan.id,
+        donationId: plan.donationId,
+      });
+      return false;
+    }
 
-        // 先以明確設定的開始繳費月份為準。
-        const createdDate = getDonationDate(
-          donation.confirmedAt || donation.createdAt
-        );
+    if (
+      donation.status !== "confirmed" ||
+      donation.donationType !== "monthly"
+    ) {
+      console.warn("[定期捐款] 原始捐款狀態不符合", {
+        planId: plan.id,
+        donationId: plan.donationId,
+        donationStatus: donation.status,
+        donationType: donation.donationType,
+      });
+      return false;
+    }
 
-        const defaultStartMonth = createdDate
-          ? `${createdDate.getFullYear()}-${String(
-              createdDate.getMonth() + 1
-            ).padStart(2, "0")}`
-          : "";
+    // 3. 確認開始月份
+    const createdDate = getDonationDate(
+      donation.confirmedAt || donation.createdAt
+    );
 
-        const startMonth = String(
-          donation.startMonth || defaultStartMonth
-        );
+    const defaultStartMonth = createdDate
+      ? `${createdDate.getFullYear()}-${String(
+          createdDate.getMonth() + 1
+        ).padStart(2, "0")}`
+      : "";
 
-        if (startMonth && selectedMonth < startMonth) {
-          return false;
-        }
+    const startMonth = String(
+      donation.startMonth || defaultStartMonth
+    );
 
-        // nextRunAt 是下一期應執行的月份。
-        // 不把已過期的下一期排程重複算入其他月份。
-        
-        
-);
-console.log(
-  "[一菜一心] 定期捐款排程檢查",
-  {
-    selectedMonth,
-    planId: plan.id,
-    donationId: plan.donationId,
-    status: plan.status,
-    completedMonths: plan.completedMonths,
-    totalMonths: plan.totalMonths,
-    nextRunAt: plan.nextRunAt,
-    donationFound: Boolean(donation),
-    donationStatus: donation?.status,
-    donationType: donation?.donationType,
-    startMonth: donation?.startMonth,
-  }
-        const nextRunDate = getDonationDate(plan.nextRunAt);
+    if (startMonth && selectedMonth < startMonth) {
+      console.log("[定期捐款] 尚未到開始月份", {
+        planId: plan.id,
+        selectedMonth,
+        startMonth,
+      });
+      return false;
+    }
 
-if (!nextRunDate) {
-  console.warn("[定期捐款] 下一期日期無法解析", {
-    planId: plan.id,
-    nextRunAt: plan.nextRunAt,
-  });
+    // 4. 取得下一期執行月份
+    const nextRunDate = getDonationDate(plan.nextRunAt);
 
-  return false;
-}
+    if (!nextRunDate) {
+      console.warn("[定期捐款] 下一期日期無法解析", {
+        planId: plan.id,
+        nextRunAt: plan.nextRunAt,
+      });
+      return false;
+    }
 
-const nextRunMonth =
-  `${nextRunDate.getFullYear()}-${String(
-    nextRunDate.getMonth() + 1
-  ).padStart(2, "0")}`;
+    const nextRunMonth =
+      `${nextRunDate.getFullYear()}-${String(
+        nextRunDate.getMonth() + 1
+      ).padStart(2, "0")}`;
 
-const shouldInclude = nextRunMonth === selectedMonth;
+    const shouldInclude = nextRunMonth === selectedMonth;
 
-console.log("[定期捐款] 最終月份判斷", {
-  planId: plan.id,
-  selectedMonth,
-  nextRunMonth,
-  shouldInclude,
-});
+    console.log("[定期捐款] 月份判斷", {
+      planId: plan.id,
+      selectedMonth,
+      startMonth,
+      nextRunMonth,
+      shouldInclude,
+    });
 
-return shouldInclude;
-      })
-      .map((plan: any) => {
-        const donation = donations.find(
-          (item: any) => item.id === plan.donationId
-        );
+    return shouldInclude;
+  })
+  .map((plan: any) => {
+    const donation = donations.find(
+      (item: any) => item.id === plan.donationId
+    );
 
-        const donationDate = getDonationDate(
-          donation?.confirmedAt || donation?.createdAt
-        );
+    const donationDate = getDonationDate(
+      donation?.confirmedAt || donation?.createdAt
+    );
 
-        return {
-          id: plan.id,
-          donationId: plan.donationId,
-          donationTime: donationDate
-            ? donationDate.getTime()
-            : 0,
-          donorName: String(
-            plan.donorName ||
-            donation?.donorName ||
-            "未提供姓名"
-          ),
-          donationType: "每月定期捐款",
-          originalAmount: Math.max(
-            0,
-            Number(plan.monthlyAmount) || 1000
-          ),
-        };
-      })
-      .sort(
-        (a: any, b: any) =>
-          a.donationTime - b.donationTime
-      );
+    return {
+      id: plan.id,
+      donationId: plan.donationId,
+      donationTime: donationDate
+        ? donationDate.getTime()
+        : 0,
+      donorName: String(
+        plan.donorName ||
+          donation?.donorName ||
+          "未提供姓名"
+      ),
+      donationType: "每月定期捐款",
+      originalAmount: Math.max(
+        0,
+        Number(plan.monthlyAmount) || 1000
+      ),
+    };
+  })
+  .sort(
+    (a: any, b: any) =>
+      a.donationTime - b.donationTime
+  );
 
     const rows: any[] = [];
 
