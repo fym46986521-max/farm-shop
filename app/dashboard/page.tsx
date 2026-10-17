@@ -399,10 +399,11 @@ const recurringDonations = monthlyDonationPlans
         nextRunDate.getMonth() + 1
       ).padStart(2, "0")}`;
 
-    // 判斷所選月份是否已達開始繳費月份
+    // 必須同時符合開始月份、下一期執行月份及剩餘期數
 const shouldInclude =
   Boolean(startMonth) &&
   selectedMonth >= startMonth &&
+  nextRunMonth === selectedMonth &&
   completedMonths < totalMonths;
 
 console.log("[定期捐款] 月份判斷", {
@@ -451,41 +452,66 @@ return shouldInclude;
 
     const rows: any[] = [];
 
-    let remaining = cap;
+let remaining = cap;
 
-    // 第一優先：定期捐款
-    for (const item of recurringDonations) {
-      const originalAmount = Math.max(
-        0,
-        Number(item.originalAmount) || 0
-      );
+// 第一優先：定期捐款
+// 每筆固定分配 NT$1,000，若本月額度不足，剩餘部分列為待結轉。
+for (const item of recurringDonations) {
+  const originalAmount = Math.max(
+    0,
+    Number(item.originalAmount) || 1000
+  );
 
-      if (originalAmount <= 0) continue;
+  const requiredAmount = 1000;
+  const allocated = Math.min(requiredAmount, remaining);
 
-      const requiredAmount = Math.min(
-        1000,
-        originalAmount
-      );
+  const carryoverAmount = Math.max(
+    0,
+    requiredAmount - allocated
+  );
 
-      const allocated = Math.min(
-        requiredAmount,
-        remaining
-      );
+  rows.push({
+    ...item,
+    originalAmount,
+    allocatedAmount: allocated,
+    split: carryoverAmount > 0,
+    carryoverAmount,
+  });
 
-      const carryoverAmount = Math.max(
-        0,
-        requiredAmount - allocated
-      );
+  remaining = Math.max(0, remaining - allocated);
+}
 
-      rows.push({
-        ...item,
-        allocatedAmount: allocated,
-        split: carryoverAmount > 0,
-        carryoverAmount,
-      });
+// 第二優先：自由捐款
+// 沒有待結轉金額時，本月分配金額就是原始捐款金額。
+// 超過剩餘額度的部分，才列入待結轉金額。
+for (const item of freeDonations) {
+  const originalAmount = Math.max(
+    0,
+    Number(item.originalAmount) || 0
+  );
 
-      remaining -= allocated;
-    }
+  if (originalAmount <= 0) continue;
+
+  const allocated = Math.min(
+    originalAmount,
+    remaining
+  );
+
+  const carryoverAmount = Math.max(
+    0,
+    originalAmount - allocated
+  );
+
+  rows.push({
+    ...item,
+    originalAmount,
+    allocatedAmount: allocated,
+    split: carryoverAmount > 0,
+    carryoverAmount,
+  });
+
+  remaining = Math.max(0, remaining - allocated);
+}
 
     // 第二優先：自由捐款，按時間先後分配
     for (const item of freeDonations) {
@@ -3568,7 +3594,7 @@ const targetMonthKey =
             <th className="border p-3">捐贈時間</th>
             <th className="border p-3">捐贈人</th>
             <th className="border p-3">類別</th>
-            <th className="border p-3">原始金額</th>
+            <th className="border p-3">捐款金額／當月扣款前餘額</th>
             <th className="border p-3">本月分配</th>
             <th className="border p-3">是否拆分</th>
             <th className="border p-3">待結轉金額</th>
