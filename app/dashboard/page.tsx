@@ -444,18 +444,34 @@ return shouldInclude;
   // 當月扣款前餘額
   // 12 月才開始扣款：顯示完整 12,000 元
   // 11 月已扣過一次：顯示剩餘 11,000 元
-  originalAmount: Math.max(
-    0,
-    (Number(plan.monthlyAmount) || 1000) *
-      Math.max(
-        0,
-        Number(plan.totalMonths ?? 12) -
-          Number(plan.completedMonths ?? 0) +
-          (String(donation?.startMonth || "") === selectedMonth
-            ? 1
-            : 0)
-      )
-  ),
+  // 當月扣款前餘額：依開始月份與選擇月份計算
+originalAmount: Math.max(
+  0,
+  (Number(plan.monthlyAmount) || 1000) *
+    Math.max(
+      0,
+      Number(plan.totalMonths ?? 12) -
+        Math.max(
+          0,
+          (
+            Number(selectedMonth.slice(0, 4)) -
+              Number(
+                String(
+                  donation?.startMonth || selectedMonth
+                ).slice(0, 4)
+              )
+          ) * 12 +
+            (
+              Number(selectedMonth.slice(5, 7)) -
+              Number(
+                String(
+                  donation?.startMonth || selectedMonth
+                ).slice(5, 7)
+              )
+            )
+        )
+    )
+),
 };
   })
   .sort(
