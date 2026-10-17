@@ -62,6 +62,7 @@ export async function GET(request: Request) {
                 )
               : "",
             amount: Number(data.amount || 0),
+
             units: Number(data.units || 0),
             status: data.status || "pending",
             receiptUrl:
@@ -146,6 +147,11 @@ export async function GET(request: Request) {
             )
           : "",
         amount: Number(data.amount || 0),
+        // 管理員設定的預計開始使用月份，例如 2026-11
+        startMonth:
+         typeof data.startMonth === "string"
+         ? data.startMonth
+        : null,
         units: Number(data.units || 0),
         status: data.status || "pending",
         receiptUrl:
