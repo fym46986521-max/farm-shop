@@ -1929,7 +1929,53 @@ if (!liff.isLoggedIn()) {
             {/* 捐款直式卡片 */}
             {!donationRecordsLoading &&
               !donationRecordsError &&
-              donationRecords.map((record) => (
+              donationRecords.map((record) => {
+  // 判斷是否為每月定期捐款
+  const isMonthly = record.donationType === "monthly";
+
+  // 取得設定的開始扣款月份，例如 2026-12
+  const startMonth = record.startMonth || "";
+
+  // 取得實際捐款日期
+  const donationDate = record.createdAt?.toDate
+    ? record.createdAt.toDate()
+    : record.createdAt
+      ? new Date(record.createdAt)
+      : null;
+
+  // 取得捐款年月，例如 2026-10
+  const donationMonth =
+    donationDate && !Number.isNaN(donationDate.getTime())
+      ? `${donationDate.getFullYear()}-${String(
+          donationDate.getMonth() + 1
+        ).padStart(2, "0")}`
+      : "";
+
+  // 判斷定期捐款是否已到開始扣款時間
+  let hasStarted = false;
+
+  if (isMonthly && startMonth) {
+    if (donationMonth === startMonth && donationDate) {
+      // 捐款日期與開始月份相同：從捐款日期開始
+      hasStarted = new Date().getTime() >= donationDate.getTime();
+    } else {
+      // 開始月份晚於捐款月份：從設定月份的 1 日開始
+      const [startYear, startMonthNumber] = startMonth
+        .split("-")
+        .map(Number);
+
+      const startDate = new Date(
+        startYear,
+        startMonthNumber - 1,
+        1
+      );
+
+      hasStarted = new Date() >= startDate;
+    }
+  }
+
+  return (
+                
                 <div
                   key={record.id}
                   className="mb-4 w-full min-w-0 overflow-hidden rounded-2xl border border-green-100 bg-white p-4 shadow-sm"
@@ -1946,8 +1992,8 @@ if (!liff.isLoggedIn()) {
                       <div className="mt-1 text-lg font-bold text-gray-900">
                         {formatDonationDate(record.createdAt)}
                       </div>
-                      {/* 預計開始投入公益月份 */}
-                    {record.donationType === "monthly" && (
+                      {/* 尚未開始扣款才顯示預計開始投入公益 */}
+                      {record.donationType === "monthly" && !hasStarted && (
                       <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
                         <div className="text-sm text-blue-700">
                           🗓️ 預計開始投入公益
@@ -2028,8 +2074,8 @@ if (!liff.isLoggedIn()) {
   </div>
 
 </div>
-{/* 每月定期捐款進度 */}
-{record.donationType === "monthly" && (
+{/* 已開始扣款才顯示每月定期捐款進度 */}
+{record.donationType === "monthly" && hasStarted && (
   <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
     <h3 className="font-bold text-blue-900">
       📅 每月定期捐款進度
@@ -2156,7 +2202,8 @@ if (!liff.isLoggedIn()) {
 {/* 查看捐款收據 */}
 
                 </div>
-              ))}
+                );
+})}
 
             {/* 分頁 */}
             {!donationRecordsLoading &&
