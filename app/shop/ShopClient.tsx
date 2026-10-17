@@ -174,10 +174,16 @@ const [donationRecordsLoading, setDonationRecordsLoading] =
 const [donationRecordsError, setDonationRecordsError] =
   useState("");
 
+// 捐款明細總筆數
 const [donationTotalCount, setDonationTotalCount] =
   useState(0);
 
+// 捐款明細目前頁碼
 const [donationPage, setDonationPage] =
+  useState(1);
+
+// 捐款明細總頁數：直接採用 API 回傳的結果
+const [donationTotalPages, setDonationTotalPages] =
   useState(1);
 
 // API 分頁游標：每個頁碼對應該頁開始前的游標
@@ -433,8 +439,13 @@ const loadDonationRecords = async (
     }
 
     setDonationRecords(result.records || []);
-    setDonationTotalCount(result.totalCount || 0);
-    setDonationPage(result.page || targetPage);
+setDonationTotalCount(result.totalCount || 0);
+setDonationPage(result.page || 1);
+
+// 使用 API 回傳的總頁數，避免前台自行計算造成下一頁被鎖住
+setDonationTotalPages(
+  Math.max(1, Number(result.totalPages) || 1)
+);
 
     if (normalizedKeyword) {
       // 搜尋模式仍由 API 依頁碼切頁。
@@ -2131,10 +2142,7 @@ if (!liff.isLoggedIn()) {
                 <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
 
                   <p className="mb-4 text-center text-sm text-gray-600">
-                    第 {donationPage} 頁／共{" "}
-                    {Math.ceil(
-                      donationTotalCount / DONATION_PAGE_SIZE
-                    ).toLocaleString()} 頁
+                    第 {donationPage} 頁／共 {donationTotalPages} 頁
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -2160,11 +2168,7 @@ if (!liff.isLoggedIn()) {
                     <button
                       type="button"
                       disabled={
-                        donationPage >=
-                          Math.ceil(
-                            donationTotalCount /
-                              DONATION_PAGE_SIZE
-                          ) ||
+                        donationPage >= donationTotalPages ||
                         donationRecordsLoading
                       }
                       onClick={() => {
