@@ -160,22 +160,21 @@ useEffect(() => {
   // 歷史排行榜查詢條件
 const currentYear = new Date().getFullYear();
 // 取得指定年份、月份的週數
+// 計算指定月份的星期三配送次數
 const getWeeksInMonth = (year: number, month: number) => {
-  const firstDay = new Date(year, month - 1, 1);
-  const lastDay = new Date(year, month, 0);
+  const lastDay = new Date(year, month, 0).getDate();
+  let deliveryWeeks = 0;
 
-  const firstMonday = new Date(firstDay);
-  const offset = (firstMonday.getDay() + 6) % 7;
-  firstMonday.setDate(firstMonday.getDate() - offset);
+  for (let day = 1; day <= lastDay; day++) {
+    const date = new Date(year, month - 1, day);
 
-  const lastMonday = new Date(lastDay);
-  const lastOffset = (lastMonday.getDay() + 6) % 7;
-  lastMonday.setDate(lastMonday.getDate() - lastOffset);
+    // getDay()：星期日為 0，星期三為 3
+    if (date.getDay() === 4) {
+      deliveryWeeks++;
+    }
+  }
 
-  return Math.round(
-    (lastMonday.getTime() - firstMonday.getTime()) /
-      (7 * 24 * 60 * 60 * 1000)
-  ) + 1;
+  return deliveryWeeks;
 };
 // 試算指定月份的捐款分配
 const calculateMonthlyAllocation = async () => {
