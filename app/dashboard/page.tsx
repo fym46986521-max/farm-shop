@@ -257,7 +257,7 @@ const calculateMonthlyAllocation = async () => {
         });
       }
     }
-    
+
     // 當月新收到的自由捐款
     const currentFreeDonations = donations
       .filter((item: any) => {
@@ -428,16 +428,31 @@ const calculateMonthlyAllocation = async () => {
 
     // 第一優先：每筆定期捐款每月最多分配 1,000 元
     for (const item of recurringDonations) {
-      const originalAmount = Math.max(0, Number(item.originalAmount) || 0);
+      const originalAmount = Math.max(
+        0,
+        Number(item.originalAmount) || 0
+      );
+
       if (originalAmount <= 0) continue;
 
-      const allocated = Math.min(1000, originalAmount, remaining);
+      const allocated = Math.min(
+        1000,
+        originalAmount,
+        remaining
+      );
+
+      // 待結轉金額 = 當月扣款前餘額 - 本月分配
+      const carryoverAmount = Math.max(
+        0,
+        originalAmount - allocated
+      );
 
       rows.push({
         ...item,
+        originalAmount,
         allocatedAmount: allocated,
-        split: false,
-        carryoverAmount: 0,
+        split: carryoverAmount > 0,
+        carryoverAmount,
       });
 
       remaining = Math.max(0, remaining - allocated);
@@ -462,7 +477,12 @@ const calculateMonthlyAllocation = async () => {
       remaining = Math.max(0, remaining - allocated);
     }
 
-    setMonthlyAllocationRows(rows);
+    // 清單只顯示本月實際有分配金額的項目
+      setMonthlyAllocationRows(
+        rows.filter(
+          (item: any) => Number(item.allocatedAmount) > 0
+        )
+      );
 
     const totalAllocated = rows.reduce(
       (sum: number, item: any) =>
