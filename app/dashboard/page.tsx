@@ -345,14 +345,39 @@ for (const [donationId, savedRow] of latestFreeAllocation.entries()) {
     isCarryover: true,
   });
 }
+console.log("目前選擇月份：", monthKey);
+
+console.log(
+  "歷史月份：",
+  savedMonths.map((item: any) => ({
+    id: item.id,
+    monthKey: item.monthKey,
+    rowsCount: Array.isArray(item.rows) ? item.rows.length : 0,
+  }))
+);
+
+for (const savedMonth of savedMonths as any[]) {
+  const savedRows = Array.isArray(savedMonth.rows)
+    ? savedMonth.rows
+    : [];
+
+  console.log(
+    `檢查月份 ${savedMonth.id} 的自由捐款：`,
+    savedRows
+      .filter((row: any) => row.donationType === "自由捐款")
+      .map((row: any) => ({
+        donationId: row.donationId,
+        donorName: row.donorName,
+        originalAmount: row.originalAmount,
+        allocatedAmount: row.allocatedAmount,
+        carryoverAmount: row.carryoverAmount,
+      }))
+  );
+}
+
 console.log(
   "歷史自由捐款結轉結果：",
-  carryoverDonations.map((item: any) => ({
-    donationId: item.donationId,
-    donorName: item.donorName,
-    originalAmount: item.originalAmount,
-    carryoverAmount: item.carryoverAmount,
-  }))
+  carryoverDonations
 );
     // 合併歷史結轉與當月新捐款
     // 歷史結轉以尚未分配的餘額為準，避免重複計算原始捐款
@@ -363,10 +388,11 @@ for (const item of carryoverDonations) {
   const donationId = String(item.donationId || item.id || "");
   if (!donationId) continue;
 
-  // 結轉金額才是本月可繼續分配的餘額
+  // carryoverDonations 裡的 originalAmount
+  // 已經代表歷史捐款尚未分配完的餘額
   const remainingAmount = Math.max(
     0,
-    Number(item.carryoverAmount) || 0
+    Number(item.originalAmount ?? item.carryoverAmount) || 0
   );
 
   // 已無剩餘金額，不再帶入下個月
