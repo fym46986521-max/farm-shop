@@ -232,7 +232,12 @@ const calculateMonthlyAllocation = async () => {
     
         // 找出每筆自由捐款最近一次已儲存的分配結果
     const latestFreeAllocation = new Map<string, any>();
-      
+      console.log("歷史月份文件：", savedMonths);
+
+for (const savedMonth of savedMonths as any[]) {
+  console.log("正在檢查歷史月份：", savedMonth.id);
+  console.log("該月份的 rows：", savedMonth.rows);
+}
     for (const savedMonth of savedMonths as any[]) {
       const savedRows = Array.isArray(savedMonth.rows)
         ? savedMonth.rows
@@ -247,6 +252,13 @@ const calculateMonthlyAllocation = async () => {
         }
 
         const donationId = String(row.donationId || row.id || "");
+        console.log("歷史分配資料：", {
+          donationId,
+          donationType: row.donationType,
+          originalAmount: row.originalAmount,
+          allocatedAmount: row.allocatedAmount,
+          carryoverAmount: row.carryoverAmount,
+        });
         if (!donationId) continue;
 
         // 依月份由舊到新處理，後面的紀錄會覆蓋前面的紀錄
