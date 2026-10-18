@@ -229,10 +229,10 @@ const calculateMonthlyAllocation = async () => {
       }))
       .filter((item: any) => item.id < monthKey)
       .sort((a: any, b: any) => a.id.localeCompare(b.id));
-
+    
         // 找出每筆自由捐款最近一次已儲存的分配結果
     const latestFreeAllocation = new Map<string, any>();
-
+      
     for (const savedMonth of savedMonths as any[]) {
       const savedRows = Array.isArray(savedMonth.rows)
         ? savedMonth.rows
@@ -289,39 +289,59 @@ const calculateMonthlyAllocation = async () => {
       .filter((item: any) => item.donationTime > 0 && item.originalAmount > 0);
 
     // 先把尚未分配完的歷史自由捐款帶入本月
-    const carryoverDonations: any[] = [];
+const carryoverDonations: any[] = [];
 
-    for (const [donationId, savedRow] of latestFreeAllocation.entries()) {
-      const remainingAmount = Math.max(
-        0,
-        Number(savedRow.carryoverAmount) || 0
-      );
+for (const [donationId, savedRow] of latestFreeAllocation.entries()) {
+  const remainingAmount = Math.max(
+    0,
+    Number(
+      savedRow.carryoverAmount ??
+      (
+        Number(savedRow.originalAmount || 0) -
+        Number(savedRow.allocatedAmount || 0)
+      )
+    ) || 0
+  );
 
-      if (remainingAmount <= 0) continue;
+  if (remainingAmount <= 0) continue;
 
-      const originalDonation = donations.find(
-        (item: any) => item.id === donationId
-      );
+  const originalDonation = donations.find(
+    (item: any) => String(item.id) === String(donationId)
+  );
 
-      carryoverDonations.push({
-        id: donationId,
-        donationId,
-        donationTime: Number(savedRow.donationTime) || 0,
-        donorName: String(
-          savedRow.donorName || originalDonation?.donorName || "未提供姓名"
-        ),
-        donationType: "自由捐款",
-        needsReceipt:
-          savedRow.needsReceipt === true ||
-          originalDonation?.needsReceipt === true,
-        donorAddress: String(
-          savedRow.donorAddress || originalDonation?.donorAddress || ""
-        ),
-        originalAmount: remainingAmount,
-        isCarryover: true,
-      });
-    }
-
+  carryoverDonations.push({
+    ...savedRow,
+    id: donationId,
+    donationId,
+    donationTime: Number(savedRow.donationTime) || 0,
+    donorName: String(
+      savedRow.donorName ||
+      originalDonation?.donorName ||
+      "未提供姓名"
+    ),
+    donationType: "自由捐款",
+    needsReceipt:
+      savedRow.needsReceipt === true ||
+      originalDonation?.needsReceipt === true,
+    donorAddress: String(
+      savedRow.donorAddress ||
+      originalDonation?.donorAddress ||
+      ""
+    ),
+    originalAmount: remainingAmount,
+    carryoverAmount: remainingAmount,
+    isCarryover: true,
+  });
+}
+console.log(
+  "歷史自由捐款結轉結果：",
+  carryoverDonations.map((item: any) => ({
+    donationId: item.donationId,
+    donorName: item.donorName,
+    originalAmount: item.originalAmount,
+    carryoverAmount: item.carryoverAmount,
+  }))
+);
     // 合併歷史結轉與當月新捐款
     // 歷史結轉以尚未分配的餘額為準，避免重複計算原始捐款
 const freeDonationMap = new Map<string, any>();
@@ -381,6 +401,16 @@ const freeDonations = Array.from(freeDonationMap.values())
     (a: any, b: any) =>
       Number(a.donationTime || 0) - Number(b.donationTime || 0)
   );
+  console.log(
+  "最終自由捐款清單：",
+  freeDonations.map((item: any) => ({
+    donationId: item.donationId,
+    donorName: item.donorName,
+    originalAmount: item.originalAmount,
+    carryoverAmount: item.carryoverAmount,
+    isCarryover: item.isCarryover,
+  }))
+);
     const selectedMonth = monthKey;
 
     // 定期捐款：保留原本的開始月份及期數判斷
