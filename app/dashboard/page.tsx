@@ -280,15 +280,21 @@ console.table(
       date.getMonth() + 1 === Number(month)
     );
   })
-  .map((item: any) => ({
+    .map((item: any) => ({
     id: item.id,
     donationTime: getDonationTime(item),
+
     donorName: String(
       item.donorName || "未提供姓名"
     ),
+
     donationType: "自由捐款",
 
-    // 自由捐款的原始金額就是實際捐款金額
+    // 收據及感謝狀寄送資訊
+    needsReceipt: item.needsReceipt === true,
+    address: String(item.address || ""),
+
+    // 自由捐款的原始金額
     originalAmount: Math.max(
       0,
       Number(item.amount) || 0
@@ -3618,7 +3624,7 @@ const targetMonthKey =
     </p>
   ) : (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] border-collapse text-sm">
+      <table className="w-full min-w-[1200px] border-collapse text-sm">
         <thead>
           <tr className="bg-gray-100 text-left">
             <th className="border p-3">捐贈時間</th>
@@ -3628,6 +3634,8 @@ const targetMonthKey =
             <th className="border p-3">本月分配</th>
             <th className="border p-3">是否拆分</th>
             <th className="border p-3">待結轉金額</th>
+            <th className="border p-3">是否寄送收據及感謝狀</th>
+            <th className="border p-3">寄送地址</th>
           </tr>
         </thead>
 
@@ -3662,6 +3670,15 @@ const targetMonthKey =
 
               <td className="border p-3">
                 NT${item.carryoverAmount.toLocaleString("zh-TW")}
+              </td>
+              <td className="border p-3">
+                {item.needReceipt ? "需要寄送" : "不需要"}
+              </td>
+
+              <td className="border p-3">
+                {item.needReceipt
+                  ? item.receiptAddress || "尚未填寫地址"
+                  : "—"}
               </td>
             </tr>
           ))}
