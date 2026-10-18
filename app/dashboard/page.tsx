@@ -324,25 +324,63 @@ const calculateMonthlyAllocation = async () => {
 
     // 合併歷史結轉與當月新捐款
     // 歷史結轉以尚未分配的餘額為準，避免重複計算原始捐款
-    const freeDonationMap = new Map<string, any>();
+const freeDonationMap = new Map<string, any>();
 
-    for (const item of carryoverDonations) {
-      freeDonationMap.set(String(item.donationId), item);
-    }
+// 先加入歷史月份尚未分配完的自由捐款
+for (const item of carryoverDonations) {
+  const donationId = String(item.donationId || item.id || "");
+  if (!donationId) continue;
 
-    for (const item of currentFreeDonations) {
-      const donationId = String(item.donationId);
+  // 結轉金額才是本月可繼續分配的餘額
+  const remainingAmount = Math.max(
+    0,
+    Number(item.carryoverAmount) || 0
+  );
 
-      // 如果已經存在結轉資料，就不再把原始捐款金額加進來
-      if (freeDonationMap.has(donationId)) continue;
+  // 已無剩餘金額，不再帶入下個月
+  if (remainingAmount <= 0) continue;
 
-      freeDonationMap.set(donationId, item);
-    }
+  freeDonationMap.set(donationId, {
+    ...item,
+    id: donationId,
+    donationId,
+    originalAmount: remainingAmount,
+    carryoverAmount: remainingAmount,
+    isCarryover: true,
+  });
+}
 
-    const freeDonations = Array.from(freeDonationMap.values())
-      .filter((item: any) => Number(item.originalAmount) > 0)
-      .sort((a: any, b: any) => a.donationTime - b.donationTime);
+// 再加入當月新收到的自由捐款
+for (const item of currentFreeDonations) {
+  const donationId = String(item.donationId || item.id || "");
+  if (!donationId) continue;
 
+  // 同一筆捐款已經有歷史結轉資料時，不重複加入原始金額
+  if (freeDonationMap.has(donationId)) continue;
+
+  const originalAmount = Math.max(
+    0,
+    Number(item.originalAmount ?? 0) || 0
+  );
+
+  if (originalAmount <= 0) continue;
+
+  freeDonationMap.set(donationId, {
+    ...item,
+    id: donationId,
+    donationId,
+    originalAmount,
+    carryoverAmount: originalAmount,
+    isCarryover: false,
+  });
+}
+
+const freeDonations = Array.from(freeDonationMap.values())
+  .filter((item: any) => Number(item.originalAmount) > 0)
+  .sort(
+    (a: any, b: any) =>
+      Number(a.donationTime || 0) - Number(b.donationTime || 0)
+  );
     const selectedMonth = monthKey;
 
     // 定期捐款：保留原本的開始月份及期數判斷
@@ -477,12 +515,8 @@ const calculateMonthlyAllocation = async () => {
       remaining = Math.max(0, remaining - allocated);
     }
 
-    // 清單只顯示本月實際有分配金額的項目
-      setMonthlyAllocationRows(
-        rows.filter(
-          (item: any) => Number(item.allocatedAmount) > 0
-        )
-      );
+    // 保留完整分配資料，包含本月分配為 0 但需要結轉的捐款
+    setMonthlyAllocationRows(rows);
 
     const totalAllocated = rows.reduce(
       (sum: number, item: any) =>
