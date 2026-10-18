@@ -1981,9 +1981,8 @@ if (!liff.isLoggedIn()) {
                   className="mb-4 w-full min-w-0 overflow-hidden rounded-2xl border border-green-100 bg-white p-4 shadow-sm"
                 >
 
-                  {/* 日期 */}
+                  {/* 日期與捐款類型 */}
                   <div className="flex items-start justify-between gap-3">
-
                     <div className="min-w-0 flex-1">
                       <div className="text-sm text-gray-500">
                         📅 捐款日期
@@ -1992,44 +1991,48 @@ if (!liff.isLoggedIn()) {
                       <div className="mt-1 text-lg font-bold text-gray-900">
                         {formatDonationDate(record.createdAt)}
                       </div>
-                      {/* 尚未開始扣款才顯示預計開始投入公益 */}
-                      {record.donationType === "monthly" && !hasStarted && (
-                      <div className="mt-3 w-full rounded-xl border border-blue-100 bg-blue-50 p-3">
-                        <div className="text-sm text-blue-700">
-                          🗓️ 預計開始投入公益
-                        </div>
-
-                        <div className="mt-1 text-base font-bold text-blue-800">
-                          {record.startMonth
-                            ? (() => {
-                                const [year, month] =
-                                  record.startMonth.split("-");
-
-                                return `${year} 年 ${Number(month)} 月`;
-                              })()
-                            : "開始月份待確認"}
-                        </div>
-
-                        <p className="mt-1 text-xs leading-5 text-blue-700">
-                          每月定期捐款將依設定月份開始安排，每月 NT$1,000。
-                        </p>
-                      </div>
-                    )}
                     </div>
 
                     <span
                       className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
-                      record.donationType === "monthly"
-                      ? "bg-blue-50 text-blue-700"
-                      : "bg-green-50 text-green-700"
-                     }`}
-                      >
+                        record.donationType === "monthly"
+                          ? "bg-blue-50 text-blue-700"
+                          : "bg-green-50 text-green-700"
+                      }`}
+                    >
                       {record.donationType === "monthly"
-                      ? "每月定期捐款"
-                      : "自由捐款"}
+                        ? "每月定期捐款"
+                        : "自由捐款"}
                     </span>
-
                   </div>
+
+                  {/* 預計開始投入公益：獨立一行，使用整張卡片的寬度 */}
+                  {record.donationType === "monthly" &&
+                    (() => {
+                      const startMonth = record.startMonth;
+
+                      const [year, month] = startMonth
+                        ? startMonth.split("-")
+                        : ["", ""];
+
+                      return (
+                        <div className="mt-3 w-full box-border rounded-xl border border-blue-100 bg-blue-50 p-3">
+                          <div className="text-sm text-blue-700">
+                            🗓️ 預計開始投入公益
+                          </div>
+
+                          <div className="mt-1 text-base font-bold text-blue-800">
+                            {startMonth
+                              ? `${year} 年 ${Number(month)} 月`
+                              : "開始月份待確認"}
+                          </div>
+
+                          <p className="mt-1 text-xs leading-5 text-blue-700">
+                            每月定期捐款將依設定月份開始安排，每月 NT$1,000。
+                          </p>
+                        </div>
+                      );
+                    })()}
 
                   {/* 捐款人、金額、狀態：同一排 */}
 <div className="mt-4 grid grid-cols-3 items-center gap-2 rounded-xl bg-gray-50 p-3">
