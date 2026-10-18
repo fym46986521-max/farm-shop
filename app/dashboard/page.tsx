@@ -3707,7 +3707,9 @@ const targetMonthKey =
         </thead>
 
         <tbody>
-          {monthlyAllocationRows.map((item: any) => (
+          {monthlyAllocationRows
+          .filter((item: any) => Number(item.allocatedAmount) > 0)
+          .map((item: any) => (
             <tr key={item.id}>
               <td className="border p-3">
                 {item.donationTime
