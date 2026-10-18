@@ -291,8 +291,12 @@ console.table(
     donationType: "自由捐款",
 
     // 收據及感謝狀寄送資訊
-    needsReceipt: item.needsReceipt === true,
-    address: String(item.address || ""),
+    needReceipt:
+      item.needReceipt === true ||
+      item.needsReceipt === true,
+    receiptAddress: String(
+      item.receiptAddress || item.address || ""
+    ),
 
     // 自由捐款的原始金額
     originalAmount: Math.max(
@@ -550,38 +554,6 @@ for (const item of freeDonations) {
 
   remaining = Math.max(0, remaining - allocated);
 }
-
-    // 第二優先：自由捐款，按時間先後分配
-    for (const item of freeDonations) {
-      const originalAmount = Math.max(
-        0,
-        Number(item.originalAmount) || 0
-      );
-
-      if (originalAmount <= 0) continue;
-
-      // 額度已用完，不再將後續整筆捐款列為待結轉
-      if (remaining <= 0) break;
-
-      const allocated = Math.min(
-        originalAmount,
-        remaining
-      );
-
-      const carryoverAmount = Math.max(
-        0,
-        originalAmount - allocated
-      );
-
-      rows.push({
-        ...item,
-        allocatedAmount: allocated,
-        split: carryoverAmount > 0,
-        carryoverAmount,
-      });
-
-      remaining -= allocated;
-    }
     console.log("[一菜一心] 分配診斷", {
   selectedMonth: monthKey,
   donationsCount: donations.length,
