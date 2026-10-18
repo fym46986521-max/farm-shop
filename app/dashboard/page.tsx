@@ -3682,6 +3682,41 @@ const targetMonthKey =
     <p className="text-2xl font-bold text-green-700">
       NT${monthlyAllocationCap.toLocaleString("zh-TW")}
     </p>
+    {/* 本月認捐達標狀態 */}
+{(() => {
+  const totalAllocated = monthlyAllocationRows.reduce(
+    (sum: number, item: any) =>
+      sum + Math.max(0, Number(item.allocatedAmount) || 0),
+    0
+  );
+
+  const remainingAmount = Math.max(
+    0,
+    monthlyAllocationCap - totalAllocated
+  );
+
+  const isAchieved = remainingAmount === 0;
+
+  return (
+    <div
+      className={`mt-3 rounded-lg px-4 py-3 font-bold ${
+        isAchieved
+          ? "bg-green-100 text-green-700"
+          : "bg-orange-100 text-orange-700"
+      }`}
+    >
+      {isAchieved ? (
+        <span>✅ 已達標</span>
+      ) : (
+        <span>
+          尚未達標，還差 NT$
+          {remainingAmount.toLocaleString("zh-TW")}
+          元
+        </span>
+      )}
+    </div>
+  );
+})()}
   </div>
 
   {monthlyAllocationRows.length === 0 ? (
