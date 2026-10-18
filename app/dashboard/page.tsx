@@ -230,25 +230,34 @@ const calculateMonthlyAllocation = async () => {
       .filter((item: any) => item.id < monthKey)
       .sort((a: any, b: any) => a.id.localeCompare(b.id));
 
-    // 找出每筆自由捐款最近一次已儲存的分配結果
+        // 找出每筆自由捐款最近一次已儲存的分配結果
     const latestFreeAllocation = new Map<string, any>();
 
     for (const savedMonth of savedMonths as any[]) {
-      const savedRows = Array.isArray(savedMonth.rows) ? savedMonth.rows : [];
+      const savedRows = Array.isArray(savedMonth.rows)
+        ? savedMonth.rows
+        : [];
 
       for (const row of savedRows) {
-        if (row.donationType !== "自由捐款") continue;
+        const type = String(row.donationType || "").toLowerCase();
+
+        // 同時接受程式顯示名稱及 Firebase 原始值
+        if (type !== "自由捐款" && type !== "free") {
+          continue;
+        }
 
         const donationId = String(row.donationId || row.id || "");
         if (!donationId) continue;
 
+        // 依月份由舊到新處理，後面的紀錄會覆蓋前面的紀錄
         latestFreeAllocation.set(donationId, {
           ...row,
+          donationType: "自由捐款",
           savedMonth: savedMonth.id,
         });
       }
     }
-
+    
     // 當月新收到的自由捐款
     const currentFreeDonations = donations
       .filter((item: any) => {
@@ -313,21 +322,25 @@ const calculateMonthlyAllocation = async () => {
       });
     }
 
-    // 合併歷史結轉與當月新捐款，同一筆捐款只保留一份
+    // 合併歷史結轉與當月新捐款
+    // 歷史結轉以尚未分配的餘額為準，避免重複計算原始捐款
     const freeDonationMap = new Map<string, any>();
 
     for (const item of carryoverDonations) {
-      freeDonationMap.set(item.donationId, item);
+      freeDonationMap.set(String(item.donationId), item);
     }
 
     for (const item of currentFreeDonations) {
-      // 已有歷史結轉的捐款，以剩餘金額為準，避免整筆金額重算
-      if (!freeDonationMap.has(item.donationId)) {
-        freeDonationMap.set(item.donationId, item);
-      }
+      const donationId = String(item.donationId);
+
+      // 如果已經存在結轉資料，就不再把原始捐款金額加進來
+      if (freeDonationMap.has(donationId)) continue;
+
+      freeDonationMap.set(donationId, item);
     }
 
     const freeDonations = Array.from(freeDonationMap.values())
+      .filter((item: any) => Number(item.originalAmount) > 0)
       .sort((a: any, b: any) => a.donationTime - b.donationTime);
 
     const selectedMonth = monthKey;
