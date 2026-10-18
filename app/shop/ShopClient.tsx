@@ -1994,7 +1994,7 @@ if (!liff.isLoggedIn()) {
                       </div>
                       {/* 尚未開始扣款才顯示預計開始投入公益 */}
                       {record.donationType === "monthly" && !hasStarted && (
-                      <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <div className="mt-3 w-full rounded-xl border border-blue-100 bg-blue-50 p-3">
                         <div className="text-sm text-blue-700">
                           🗓️ 預計開始投入公益
                         </div>
