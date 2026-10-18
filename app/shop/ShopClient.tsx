@@ -383,7 +383,8 @@ if (liff.isLoggedIn()) {
     setCart(newCart);
     localStorage.setItem("cart", JSON.stringify(newCart));
   };
-
+  const [needReceipt, setNeedReceipt] = useState(false);
+  const [receiptAddress, setReceiptAddress] = useState("");
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 // 載入捐款明細
 // 載入捐款明細
@@ -490,7 +491,10 @@ setDonationTotalPages(
     alert("請輸入正確的台灣手機號碼");
     return;
   }
-
+  if (needReceipt && !receiptAddress.trim()) {
+    alert("請填寫收據及感謝狀的寄送地址");
+    return;
+  }
   if (!/^\d{5}$/.test(donorAccountLast5)) {
     alert("請輸入正確的 5 位數字帳號末碼");
     return;
@@ -521,6 +525,8 @@ setDonationTotalPages(
   donorPhone: phone,
   donorAccountLast5,
   donationType,
+  needReceipt,
+  receiptAddress: needReceipt ? receiptAddress.trim() : "",
   units: donationType === "monthly" ? 120 : donationUnits,
 }),
     });
@@ -1528,7 +1534,51 @@ if (!liff.isLoggedIn()) {
                     className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
                   />
                 </div>
+                {/* 是否需要寄送收據及感謝狀 */}
+                <div className="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={needReceipt}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        setNeedReceipt(checked);
 
+                        if (!checked) {
+                          setReceiptAddress("");
+                        }
+                      }}
+                      className="mt-1 h-5 w-5 shrink-0 accent-green-600"
+                    />
+
+                    <span className="font-bold text-gray-800">
+                      是否需要寄送收據及感謝狀？
+                    </span>
+                  </label>
+
+                  <p className="mt-2 pl-8 text-sm leading-6 text-gray-500">
+                    收據及感謝狀可在「公益捐款明細」查詢相關照片。
+                  </p>
+
+                  {needReceipt && (
+                    <div className="mt-4">
+                      <label className="mb-2 block text-sm font-bold text-gray-700">
+                        收件地址 <span className="text-red-500">*</span>
+                      </label>
+
+                      <textarea
+                        value={receiptAddress}
+                        onChange={(event) =>
+                          setReceiptAddress(event.target.value)
+                        }
+                        placeholder="請輸入縣市、鄉鎮市區、道路及門牌號碼"
+                        required={needReceipt}
+                        rows={3}
+                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                      />
+                    </div>
+                  )}
+                </div>
                 {/* 認捐金額：沿用原本選好的金額 */}
                 <div>
                   <label className="mb-2 block font-bold text-gray-700">
