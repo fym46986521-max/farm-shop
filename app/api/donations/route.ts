@@ -55,6 +55,11 @@ export async function GET(request: Request) {
             id: doc.id,
             donorName: data.donorName || "",
             donationType: data.donationType || "free",
+            needsReceipt: data.needsReceipt === true,
+            donorAddress:
+              typeof data.donorAddress === "string"
+                ? data.donorAddress
+                : "",
             donorPhone: data.donorPhone
               ? String(data.donorPhone).replace(
                   /^(\d{4})\d+(\d{3})$/,
@@ -140,6 +145,11 @@ export async function GET(request: Request) {
         id: doc.id,
         donorName: data.donorName || "",
         donationType: data.donationType || "free",
+        needsReceipt: data.needsReceipt === true,
+        donorAddress:
+          typeof data.donorAddress === "string"
+            ? data.donorAddress
+            : "",
         donorPhone: data.donorPhone
           ? String(data.donorPhone).replace(
               /^(\d{4})\d+(\d{3})$/,
@@ -205,7 +215,22 @@ export async function POST(req: Request) {
       typeof body.donorAccountLast5 === "string"
         ? body.donorAccountLast5.trim()
         : "";
+    // 是否需要寄送收據及感謝狀
+      const needsReceipt = body.needsReceipt === true;
 
+      // 寄送地址：只有勾選需要寄送時才保存
+      const donorAddress =
+        needsReceipt && typeof body.donorAddress === "string"
+          ? body.donorAddress.trim()
+          : "";
+
+      // 勾選寄送時，必須填寫地址
+      if (needsReceipt && !donorAddress) {
+        return NextResponse.json(
+          { error: "請填寫收據及感謝狀的寄送地址" },
+          { status: 400 }
+        );
+      }
     const donationType =
     body.donationType === "monthly" ? "monthly" : "free";
 
@@ -255,19 +280,39 @@ const amount =
   );
 }
 
-    const docRef = await adminDb
-      .collection("donations")
-      .add({
-        donorName,
-        donorPhone,
-        units,
-        amount,
-        donationType,
-        donorAccountLast5,
-        status: "pending",
-        receiptUrl: "",
-        createdAt: FieldValue.serverTimestamp(),
-      });
+// 勾選寄送收據及感謝狀時，必須填寫地址
+if (needsReceipt && !donorAddress) {
+  return NextResponse.json(
+    { error: "請填寫收據及感謝狀的寄送地址" },
+    { status: 400 }
+  );
+}
+
+if (donorAddress.length > 300) {
+  return NextResponse.json(
+    { error: "寄送地址過長，請重新確認" },
+    { status: 400 }
+  );
+}
+
+const docRef = await adminDb
+  .collection("donations")
+  .add({
+    donorName,
+    donorPhone,
+    units,
+    amount,
+    donationType,
+    donorAccountLast5,
+
+    // 收據及感謝狀寄送資料
+    needsReceipt,
+    donorAddress: needsReceipt ? donorAddress : "",
+
+    status: "pending",
+    receiptUrl: "",
+    createdAt: FieldValue.serverTimestamp(),
+  });
 
     return NextResponse.json(
       {

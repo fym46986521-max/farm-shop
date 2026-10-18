@@ -50,7 +50,7 @@ type WeeklyDonationRecord = {
 export default function ShopClient() {
   const router = useRouter();
   
-
+  const [donorAddress, setDonorAddress] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   useEffect(() => {
@@ -525,9 +525,11 @@ setDonationTotalPages(
   donorPhone: phone,
   donorAccountLast5,
   donationType,
-  needReceipt,
-  receiptAddress: needReceipt ? receiptAddress.trim() : "",
   units: donationType === "monthly" ? 120 : donationUnits,
+
+ // 收據及感謝狀寄送資料
+needsReceipt: needReceipt,
+donorAddress: needReceipt ? donorAddress.trim() : "",
 }),
     });
 

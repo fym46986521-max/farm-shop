@@ -289,15 +289,9 @@ console.table(
     ),
 
     donationType: "自由捐款",
-
-    // 收據及感謝狀寄送資訊
-    needReceipt:
-      item.needReceipt === true ||
-      item.needsReceipt === true,
-    receiptAddress: String(
-      item.receiptAddress || item.address || ""
-    ),
-
+    needsReceipt: item.needsReceipt === true,
+    donorAddress: String(item.donorAddress || ""),
+    
     // 自由捐款的原始金額
     originalAmount: Math.max(
       0,
@@ -450,7 +444,9 @@ return shouldInclude;
   ),
 
   donationType: "每月定期捐款",
-
+  // 收據及感謝狀寄送資料
+needsReceipt: donation?.needsReceipt === true,
+donorAddress: String(donation?.donorAddress || ""),
   // 當月扣款前餘額
   // 12 月才開始扣款：顯示完整 12,000 元
   // 11 月已扣過一次：顯示剩餘 11,000 元
@@ -3644,12 +3640,12 @@ const targetMonthKey =
                 NT${item.carryoverAmount.toLocaleString("zh-TW")}
               </td>
               <td className="border p-3">
-                {item.needReceipt ? "需要寄送" : "不需要"}
+                {item.needsReceipt ? "需要" : "不需要"}
               </td>
 
               <td className="border p-3">
-                {item.needReceipt
-                  ? item.receiptAddress || "尚未填寫地址"
+                {item.needsReceipt
+                  ? item.donorAddress || "尚未填寫地址"
                   : "—"}
               </td>
             </tr>
