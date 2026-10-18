@@ -185,9 +185,9 @@ const calculateMonthlyAllocation = async () => {
     const month = Number(monthlyPlanMonth);
     const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-    const deliveryWeeks = getWeeksInMonth(year, month);
+    const deliveryWeeks = 4;
     const weeklyTarget = Math.max(0, Number(weeklyDonationTarget) || 0);
-    const cap = weeklyTarget * deliveryWeeks;
+    const cap = Math.max(0, Number(weeklyDonationTarget) || 0) * 4;
 
     setMonthlyAllocationCap(cap);
 
