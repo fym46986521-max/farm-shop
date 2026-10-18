@@ -137,7 +137,8 @@ const [monthlyAllocationRows, setMonthlyAllocationRows] = useState<any[]>([]);
 
 // 每月分配清單載入狀態
 const [monthlyAllocationLoading, setMonthlyAllocationLoading] = useState(false);
-
+// 儲存每月分配結果的狀態
+const [savingMonthlyAllocation, setSavingMonthlyAllocation] = useState(false);
 // 每月分配上限
 const [monthlyAllocationCap, setMonthlyAllocationCap] = useState(0);
 // 切換年月時，自動載入該月份的設定
@@ -177,389 +178,277 @@ const getWeeksInMonth = (year: number, month: number) => {
   ) + 1;
 };
 // 試算指定月份的捐款分配
-const calculateMonthlyAllocation = () => {
+const calculateMonthlyAllocation = async () => {
   setMonthlyAllocationLoading(true);
 
   try {
-    const year = monthlyPlanYear;
-    const month = monthlyPlanMonth;
-
-    const monthKey =
-      `${year}-${String(month).padStart(2, "0")}`;
+    const year = Number(monthlyPlanYear);
+    const month = Number(monthlyPlanMonth);
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
     const deliveryWeeks = getWeeksInMonth(year, month);
-
-    const weeklyTarget = Math.max(
-      0,
-      Number(weeklyDonationTarget) || 0
-    );
-
+    const weeklyTarget = Math.max(0, Number(weeklyDonationTarget) || 0);
     const cap = weeklyTarget * deliveryWeeks;
 
     setMonthlyAllocationCap(cap);
 
     const getDonationDate = (value: any): Date | null => {
-  if (value == null) return null;
+      if (value == null) return null;
 
-  let date: Date;
+      let date: Date;
 
-  // Firebase Timestamp
-  if (typeof value.toDate === "function") {
-    date = value.toDate();
-  }
-  // Firebase Timestamp 的 seconds 格式
-  else if (typeof value.seconds === "number") {
-    date = new Date(value.seconds * 1000);
-  }
-  // JavaScript Date
-  else if (value instanceof Date) {
-    date = value;
-  }
-  // 日期字串或毫秒時間戳
-  else if (
-    typeof value === "string" ||
-    typeof value === "number"
-  ) {
-    date = new Date(value);
-  } else {
-    return null;
-  }
+      if (typeof value.toDate === "function") {
+        date = value.toDate();
+      } else if (typeof value.seconds === "number") {
+        date = new Date(value.seconds * 1000);
+      } else if (value instanceof Date) {
+        date = value;
+      } else if (typeof value === "string" || typeof value === "number") {
+        date = new Date(value);
+      } else {
+        return null;
+      }
 
-  return Number.isNaN(date.getTime()) ? null : date;
-};
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
     const getDonationTime = (item: any): number => {
-      const date = getDonationDate(
-        item.confirmedAt || item.createdAt
-      );
-
+      const date = getDonationDate(item.confirmedAt || item.createdAt);
       return date ? date.getTime() : 0;
     };
 
-    // 只納入所選月份、已確認的自由捐款。
-    // 定期捐款另由 monthlyDonationPlans 處理，避免重複計算。
-    console.log(
-  "[一菜一心] 所選月份：",
-  `${monthlyPlanYear}-${String(monthlyPlanMonth).padStart(2, "0")}`
-);
+    // 讀取所有已儲存的每月分配紀錄
+    const allocationSnapshot = await getDocs(
+      collection(db, "monthlyDonationAllocations")
+    );
 
-console.table(
-  donations.map((item: any) => ({
-    id: item.id,
-    donorName: item.donorName,
-    amount: item.amount,
-    status: item.status,
-    donationType: item.donationType,
-    createdAt: item.createdAt?.toDate
-      ? item.createdAt.toDate().toISOString()
-      : String(item.createdAt ?? ""),
-    confirmedAt: item.confirmedAt?.toDate
-      ? item.confirmedAt.toDate().toISOString()
-      : String(item.confirmedAt ?? ""),
-  }))
-);
-    const freeDonations = donations
-  .filter((item: any) => {
-    // 只處理已確認的自由捐款
-    if (
-      item.status !== "confirmed" ||
-      item.donationType !== "free"
-    ) {
-      return false;
+    const savedMonths = allocationSnapshot.docs
+      .map((item) => ({
+        id: item.id,
+        ...item.data(),
+      }))
+      .filter((item: any) => item.id < monthKey)
+      .sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+    // 找出每筆自由捐款最近一次已儲存的分配結果
+    const latestFreeAllocation = new Map<string, any>();
+
+    for (const savedMonth of savedMonths as any[]) {
+      const savedRows = Array.isArray(savedMonth.rows) ? savedMonth.rows : [];
+
+      for (const row of savedRows) {
+        if (row.donationType !== "自由捐款") continue;
+
+        const donationId = String(row.donationId || row.id || "");
+        if (!donationId) continue;
+
+        latestFreeAllocation.set(donationId, {
+          ...row,
+          savedMonth: savedMonth.id,
+        });
+      }
     }
 
-    // 取得捐款日期
-    const date = getDonationDate(
-      item.confirmedAt || item.createdAt
-    );
+    // 當月新收到的自由捐款
+    const currentFreeDonations = donations
+      .filter((item: any) => {
+        if (
+          item.status !== "confirmed" ||
+          item.donationType !== "free"
+        ) {
+          return false;
+        }
 
-    if (!date) return false;
+        const date = getDonationDate(item.confirmedAt || item.createdAt);
+        if (!date) return false;
 
-    // 只納入所選月份的自由捐款
-    return (
-      date.getFullYear() === Number(year) &&
-      date.getMonth() + 1 === Number(month)
-    );
-  })
-    .map((item: any) => ({
-    id: item.id,
-    donationTime: getDonationTime(item),
+        const donationMonth =
+          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-    donorName: String(
-      item.donorName || "未提供姓名"
-    ),
+        return donationMonth === monthKey;
+      })
+      .map((item: any) => ({
+        id: item.id,
+        donationId: item.id,
+        donationTime: getDonationTime(item),
+        donorName: String(item.donorName || "未提供姓名"),
+        donationType: "自由捐款",
+        needsReceipt: item.needsReceipt === true,
+        donorAddress: String(item.donorAddress || ""),
+        originalAmount: Math.max(0, Number(item.amount) || 0),
+      }))
+      .filter((item: any) => item.donationTime > 0 && item.originalAmount > 0);
 
-    donationType: "自由捐款",
-    needsReceipt: item.needsReceipt === true,
-    donorAddress: String(item.donorAddress || ""),
-    
-    // 自由捐款的原始金額
-    originalAmount: Math.max(
-      0,
-      Number(item.amount) || 0
-    ),
-  }))
-  .filter(
-    (item: any) =>
-      item.donationTime > 0 &&
-      item.originalAmount > 0
-  )
-  .sort(
-    (a: any, b: any) =>
-      a.donationTime - b.donationTime
-  );
+    // 先把尚未分配完的歷史自由捐款帶入本月
+    const carryoverDonations: any[] = [];
 
-console.log(
-  "[一菜一心] 自由捐款篩選結果",
-  {
-    selectedMonth: monthKey,
-    count: freeDonations.length,
-    donations: freeDonations,
-  }
-);
+    for (const [donationId, savedRow] of latestFreeAllocation.entries()) {
+      const remainingAmount = Math.max(
+        0,
+        Number(savedRow.carryoverAmount) || 0
+      );
+
+      if (remainingAmount <= 0) continue;
+
+      const originalDonation = donations.find(
+        (item: any) => item.id === donationId
+      );
+
+      carryoverDonations.push({
+        id: donationId,
+        donationId,
+        donationTime: Number(savedRow.donationTime) || 0,
+        donorName: String(
+          savedRow.donorName || originalDonation?.donorName || "未提供姓名"
+        ),
+        donationType: "自由捐款",
+        needsReceipt:
+          savedRow.needsReceipt === true ||
+          originalDonation?.needsReceipt === true,
+        donorAddress: String(
+          savedRow.donorAddress || originalDonation?.donorAddress || ""
+        ),
+        originalAmount: remainingAmount,
+        isCarryover: true,
+      });
+    }
+
+    // 合併歷史結轉與當月新捐款，同一筆捐款只保留一份
+    const freeDonationMap = new Map<string, any>();
+
+    for (const item of carryoverDonations) {
+      freeDonationMap.set(item.donationId, item);
+    }
+
+    for (const item of currentFreeDonations) {
+      // 已有歷史結轉的捐款，以剩餘金額為準，避免整筆金額重算
+      if (!freeDonationMap.has(item.donationId)) {
+        freeDonationMap.set(item.donationId, item);
+      }
+    }
+
+    const freeDonations = Array.from(freeDonationMap.values())
+      .sort((a: any, b: any) => a.donationTime - b.donationTime);
 
     const selectedMonth = monthKey;
 
-    // 定期捐款：依照所選月份及下一期執行日期篩選
-const recurringDonations = monthlyDonationPlans
-  .filter((plan: any) => {
-    // 1. 只處理有效排程
-    if (plan.status !== "active") {
-      return false;
-    }
+    // 定期捐款：保留原本的開始月份及期數判斷
+    const recurringDonations = monthlyDonationPlans
+      .filter((plan: any) => {
+        if (plan.status !== "active") return false;
 
-    const completedMonths = Number(plan.completedMonths ?? 0);
-    const totalMonths = Number(plan.totalMonths ?? 12);
+        const completedMonths = Number(plan.completedMonths ?? 0);
+        const totalMonths = Number(plan.totalMonths ?? 12);
 
-    // 已完成全部期數，不再分配
-    if (completedMonths >= totalMonths) {
-      return false;
-    }
+        if (completedMonths >= totalMonths) return false;
 
-    // 2. 找出原始捐款資料
-    const donation = donations.find(
-      (item: any) => item.id === plan.donationId
-    );
+        const donation = donations.find(
+          (item: any) => item.id === plan.donationId
+        );
 
-    if (!donation) {
-      console.warn("[定期捐款] 找不到原始捐款", {
-        planId: plan.id,
-        donationId: plan.donationId,
-      });
-      return false;
-    }
+        if (
+          !donation ||
+          donation.status !== "confirmed" ||
+          donation.donationType !== "monthly"
+        ) {
+          return false;
+        }
 
-    if (
-      donation.status !== "confirmed" ||
-      donation.donationType !== "monthly"
-    ) {
-      console.warn("[定期捐款] 原始捐款狀態不符合", {
-        planId: plan.id,
-        donationId: plan.donationId,
-        donationStatus: donation.status,
-        donationType: donation.donationType,
-      });
-      return false;
-    }
+        const createdDate = getDonationDate(
+          donation.confirmedAt || donation.createdAt
+        );
 
-    // 3. 確認開始月份
-    const createdDate = getDonationDate(
-      donation.confirmedAt || donation.createdAt
-    );
+        const defaultStartMonth = createdDate
+          ? `${createdDate.getFullYear()}-${String(
+              createdDate.getMonth() + 1
+            ).padStart(2, "0")}`
+          : "";
 
-    const defaultStartMonth = createdDate
-      ? `${createdDate.getFullYear()}-${String(
-          createdDate.getMonth() + 1
-        ).padStart(2, "0")}`
-      : "";
+        const startMonth = String(
+          donation.startMonth || defaultStartMonth
+        );
 
-    const startMonth = String(
-      donation.startMonth || defaultStartMonth
-    );
+        return Boolean(startMonth) && selectedMonth >= startMonth;
+      })
+      .map((plan: any) => {
+        const donation = donations.find(
+          (item: any) => item.id === plan.donationId
+        );
 
-    if (startMonth && selectedMonth < startMonth) {
-      console.log("[定期捐款] 尚未到開始月份", {
-        planId: plan.id,
-        selectedMonth,
-        startMonth,
-      });
-      return false;
-    }
+        const donationDate = getDonationDate(
+          donation?.confirmedAt || donation?.createdAt
+        );
 
-    // 4. 取得下一期執行月份
-    const nextRunDate = getDonationDate(plan.nextRunAt);
+        const startMonth = String(donation?.startMonth || selectedMonth);
 
-    if (!nextRunDate) {
-      console.warn("[定期捐款] 下一期日期無法解析", {
-        planId: plan.id,
-        nextRunAt: plan.nextRunAt,
-      });
-      return false;
-    }
-
-    const nextRunMonth =
-      `${nextRunDate.getFullYear()}-${String(
-        nextRunDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-    // 定期捐款從開始月份起，只要尚未完成全部期數，
-// 就納入所選月份，不再要求 nextRunAt 必須等於所選月份。
-const shouldInclude =
-  Boolean(startMonth) &&
-  selectedMonth >= startMonth &&
-  completedMonths < totalMonths;
-
-console.log("[定期捐款] 月份判斷", {
-  planId: plan.id,
-  selectedMonth,
-  startMonth,
-  nextRunMonth,
-  completedMonths,
-  totalMonths,
-  shouldInclude,
-});
-
-return shouldInclude;
-  })
-  .map((plan: any) => {
-    const donation = donations.find(
-      (item: any) => item.id === plan.donationId
-    );
-
-    const donationDate = getDonationDate(
-      donation?.confirmedAt || donation?.createdAt
-    );
-
-    return {
-  id: plan.id,
-  donationId: plan.donationId,
-
-  donationTime: donationDate
-    ? donationDate.getTime()
-    : 0,
-
-  donorName: String(
-    plan.donorName ||
-      donation?.donorName ||
-      "未提供姓名"
-  ),
-
-  donationType: "每月定期捐款",
-  // 收據及感謝狀寄送資料
-needsReceipt: donation?.needsReceipt === true,
-donorAddress: String(donation?.donorAddress || ""),
-  // 當月扣款前餘額
-  // 12 月才開始扣款：顯示完整 12,000 元
-  // 11 月已扣過一次：顯示剩餘 11,000 元
-  // 當月扣款前餘額：依開始月份與選擇月份計算
-originalAmount: Math.max(
-  0,
-  (Number(plan.monthlyAmount) || 1000) *
-    Math.max(
-      0,
-      Number(plan.totalMonths ?? 12) -
-        Math.max(
+        const monthsElapsed = Math.max(
           0,
-          (
-            Number(selectedMonth.slice(0, 4)) -
-              Number(
-                String(
-                  donation?.startMonth || selectedMonth
-                ).slice(0, 4)
-              )
-          ) * 12 +
-            (
-              Number(selectedMonth.slice(5, 7)) -
-              Number(
-                String(
-                  donation?.startMonth || selectedMonth
-                ).slice(5, 7)
-              )
-            )
-        )
-    )
-),
-};
-  })
-  .sort(
-    (a: any, b: any) =>
-      a.donationTime - b.donationTime
-  );
+          (year - Number(startMonth.slice(0, 4))) * 12 +
+            (month - Number(startMonth.slice(5, 7)))
+        );
+
+        const totalMonths = Number(plan.totalMonths ?? 12);
+        const monthlyAmount = Number(plan.monthlyAmount) || 1000;
+
+        const remainingCommitment = Math.max(
+          0,
+          (totalMonths - monthsElapsed) * monthlyAmount
+        );
+
+        return {
+          id: plan.id,
+          donationId: plan.donationId,
+          donationTime: donationDate ? donationDate.getTime() : 0,
+          donorName: String(
+            plan.donorName || donation?.donorName || "未提供姓名"
+          ),
+          donationType: "每月定期捐款",
+          needsReceipt: donation?.needsReceipt === true,
+          donorAddress: String(donation?.donorAddress || ""),
+          originalAmount: remainingCommitment,
+        };
+      })
+      .sort((a: any, b: any) => a.donationTime - b.donationTime);
 
     const rows: any[] = [];
+    let remaining = cap;
 
-let remaining = cap;
+    // 第一優先：每筆定期捐款每月最多分配 1,000 元
+    for (const item of recurringDonations) {
+      const originalAmount = Math.max(0, Number(item.originalAmount) || 0);
+      if (originalAmount <= 0) continue;
 
-// 第一優先：定期捐款，每筆每月固定分配 NT$1,000
-for (const item of recurringDonations) {
-  const originalAmount = Math.max(
-    0,
-    Number(item.originalAmount) || 0
-  );
+      const allocated = Math.min(1000, originalAmount, remaining);
 
-  if (originalAmount <= 0) continue;
+      rows.push({
+        ...item,
+        allocatedAmount: allocated,
+        split: false,
+        carryoverAmount: 0,
+      });
 
-  // 當月剩餘承諾餘額不足 1,000 時，只分配剩餘金額
-  const requiredAmount = Math.min(1000, originalAmount);
+      remaining = Math.max(0, remaining - allocated);
+    }
 
-  // 本月可用額度不足時，不超過剩餘額度
-  const allocated = Math.min(requiredAmount, remaining);
+    // 第二優先：自由捐款，先處理最早的捐款
+    for (const item of freeDonations) {
+      const originalAmount = Math.max(0, Number(item.originalAmount) || 0);
+      if (originalAmount <= 0) continue;
 
-  const carryoverAmount = Math.max(
-    0,
-    originalAmount - allocated
-  );
+      const allocated = Math.min(originalAmount, remaining);
+      const carryoverAmount = Math.max(0, originalAmount - allocated);
 
-  rows.push({
-    ...item,
-    allocatedAmount: allocated,
-    split: carryoverAmount > 0,
-    carryoverAmount,
-  });
+      rows.push({
+        ...item,
+        originalAmount,
+        allocatedAmount: allocated,
+        split: carryoverAmount > 0,
+        carryoverAmount,
+      });
 
-  remaining -= allocated;
-}
+      remaining = Math.max(0, remaining - allocated);
+    }
 
-// 第二優先：自由捐款
-// 沒有待結轉金額時，本月分配金額就是原始捐款金額。
-// 超過剩餘額度的部分，才列入待結轉金額。
-for (const item of freeDonations) {
-  const originalAmount = Math.max(
-    0,
-    Number(item.originalAmount) || 0
-  );
-
-  if (originalAmount <= 0) continue;
-
-  const allocated = Math.min(
-    originalAmount,
-    remaining
-  );
-
-  const carryoverAmount = Math.max(
-    0,
-    originalAmount - allocated
-  );
-
-  rows.push({
-    ...item,
-    originalAmount,
-    allocatedAmount: allocated,
-    split: carryoverAmount > 0,
-    carryoverAmount,
-  });
-
-  remaining = Math.max(0, remaining - allocated);
-}
-    console.log("[一菜一心] 分配診斷", {
-  selectedMonth: monthKey,
-  donationsCount: donations.length,
-  plansCount: monthlyDonationPlans.length,
-  freeDonationCount: freeDonations.length,
-  recurringDonationCount: recurringDonations.length,
-  cap,
-  rowsCount: rows.length,
-  rows,
-});
     setMonthlyAllocationRows(rows);
 
     const totalAllocated = rows.reduce(
@@ -573,18 +462,79 @@ for (const item of freeDonations) {
       `月份：${monthKey}\n` +
       `配送週次：${deliveryWeeks} 週\n` +
       `認捐上限：NT$${cap.toLocaleString("zh-TW")}\n` +
-      `本次試算分配：NT$${totalAllocated.toLocaleString("zh-TW")}\n` +
+      `本次分配：NT$${totalAllocated.toLocaleString("zh-TW")}\n` +
       `定期捐款：${recurringDonations.length} 筆\n` +
-      `自由捐款：${freeDonations.length} 筆`
+      `自由捐款及結轉：${freeDonations.length} 筆\n\n` +
+      `注意：試算結果尚未儲存。`
     );
   } catch (error) {
     console.error("每月捐款分配試算失敗：", error);
-
-    alert(
-      "試算失敗，請開啟瀏覽器 Console 查看錯誤。"
-    );
+    alert("試算失敗，請開啟瀏覽器 Console 查看錯誤。");
   } finally {
     setMonthlyAllocationLoading(false);
+  }
+};
+// 確認並儲存本月分配結果
+const handleSaveMonthlyAllocation = async () => {
+  if (savingMonthlyAllocation) return;
+
+  if (monthlyAllocationRows.length === 0) {
+    alert("請先試算本月捐款分配。");
+    return;
+  }
+
+  const monthKey =
+    `${monthlyPlanYear}-${String(monthlyPlanMonth).padStart(2, "0")}`;
+
+  const allocationRef = doc(
+    db,
+    "monthlyDonationAllocations",
+    monthKey
+  );
+
+  setSavingMonthlyAllocation(true);
+
+  try {
+    // 防止重複覆寫已儲存的月份
+    const existing = await getDoc(allocationRef);
+
+    if (existing.exists()) {
+      const confirmed = window.confirm(
+        `${monthKey} 已經有儲存的分配紀錄。\n確定要覆寫嗎？`
+      );
+
+      if (!confirmed) return;
+    }
+
+    const rowsToSave = monthlyAllocationRows.map((item: any) => ({
+      ...item,
+      donationId: String(item.donationId || item.id),
+      allocatedAmount: Math.max(0, Number(item.allocatedAmount) || 0),
+      carryoverAmount: Math.max(0, Number(item.carryoverAmount) || 0),
+    }));
+
+    await setDoc(
+      allocationRef,
+      {
+        monthKey,
+        year: Number(monthlyPlanYear),
+        month: Number(monthlyPlanMonth),
+        cap: Number(monthlyAllocationCap) || 0,
+        rows: rowsToSave,
+        totalAllocated: rowsToSave.reduce(
+          (sum: number, item: any) => sum + item.allocatedAmount,
+          0
+        ),
+        savedAt: Timestamp.now(),
+      }
+    );
+
+    alert(`已儲存 ${monthKey} 的分配結果。`);
+  } catch (error) {
+    console.error("儲存每月分配結果失敗：", error);
+    alert("儲存失敗，請檢查 Firebase 權限及網路連線。");
+  } finally {
+    setSavingMonthlyAllocation(false);
   }
 };
 // 取得指定月份的每週排行榜
@@ -3569,6 +3519,20 @@ const targetMonthKey =
   {monthlyAllocationLoading
     ? "計算中..."
     : "試算本月捐款分配"}
+</button>
+<button
+  type="button"
+  disabled={
+    savingMonthlyAllocation ||
+    monthlyAllocationLoading ||
+    monthlyAllocationRows.length === 0
+  }
+  onClick={handleSaveMonthlyAllocation}
+  className="mt-3 w-full rounded-lg bg-green-600 px-5 py-3 font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {savingMonthlyAllocation
+    ? "儲存中..."
+    : "確認並儲存本月分配"}
 </button>
 {/* 每月捐款分配清單 */}
 <div className="rounded-xl border p-4">
