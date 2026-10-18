@@ -527,9 +527,8 @@ setDonationTotalPages(
   donationType,
   units: donationType === "monthly" ? 120 : donationUnits,
 
- // 收據及感謝狀寄送資料
-needsReceipt: needReceipt,
-donorAddress: needReceipt ? donorAddress.trim() : "",
+ needsReceipt: needReceipt,
+donorAddress: needReceipt ? receiptAddress.trim() : "",
 }),
     });
 
