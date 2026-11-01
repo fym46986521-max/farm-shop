@@ -86,6 +86,9 @@ const [activeTab, setActiveTab] = useState<"shop" | "donation">("shop");
 
 // 收據預覽視窗
 const [selectedDonationReceipt, setSelectedDonationReceipt] = useState<string | null>(null);
+// 感謝狀預覽視窗
+const [selectedDonationThankYou, setSelectedDonationThankYou] =
+  useState<string | null>(null);
 // 一菜一心認捐彈窗
 const [showDonationModal, setShowDonationModal] = useState(false);
 // 公益捐款明細彈窗
@@ -2230,29 +2233,51 @@ if (!liff.isLoggedIn()) {
   </div>
 )}
 {/* 查看捐款收據 */}
-{/* 捐款收據按鈕 */}
-{record.receiptUrl &&
-(
-  record.donationType !== "monthly" ||
-  Number(record.amount) === 12000
-) ? (
-  <button
-    type="button"
-    onClick={() =>
-      setSelectedDonationReceipt(record.receiptUrl)
-    }
-    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 font-bold text-green-700 shadow-sm transition hover:border-green-300 hover:from-green-100 hover:to-emerald-100 active:scale-[0.99]"
-  >
-    🧾 查看捐款收據
-  </button>
-) : (
-  record.donationType === "monthly" &&
-  Number(record.amount) !== 12000 ? null : (
-    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">
-      🧾 收據尚未提供
+{/* 收據與感謝狀按鈕 */}
+<div className="mt-4 grid grid-cols-2 gap-3">
+  {/* 捐款收據 */}
+  {record.receiptUrl &&
+  (
+    record.donationType !== "monthly" ||
+    Number(record.amount) === 12000
+  ) ? (
+    <button
+      type="button"
+      onClick={() => setSelectedDonationReceipt(record.receiptUrl)}
+      className="flex items-center justify-center rounded-xl border border-green-200 bg-green-50 px-3 py-3 font-bold text-green-700 transition hover:bg-green-100"
+    >
+      🧾 查看收據
+    </button>
+  ) : (
+    record.donationType === "monthly" &&
+    Number(record.amount) !== 12000 ? (
+      <div className="flex items-center justify-center rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-400">
+        🧾 收據不適用
+      </div>
+    ) : (
+      <div className="flex items-center justify-center rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-500">
+        🧾 收據尚未提供
+      </div>
+    )
+  )}
+
+  {/* 感謝狀 */}
+  {record.thankYouUrl ? (
+    <button
+      type="button"
+      onClick={() =>
+        setSelectedDonationThankYou(record.thankYouUrl)
+      }
+      className="flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 font-bold text-amber-700 transition hover:bg-amber-100"
+    >
+      💌 查看感謝狀
+    </button>
+  ) : (
+    <div className="flex items-center justify-center rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-500">
+      💌 感謝狀尚未提供
     </div>
-  )
-)}
+  )}
+</div>
 {/* 查看捐款收據 */}
 
                 </div>
@@ -2489,6 +2514,32 @@ if (!liff.isLoggedIn()) {
       <img
         src={selectedDonationReceipt}
         alt="公益捐款收據"
+        className="mx-auto h-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain"
+      />
+    </div>
+  </div>
+)}
+{/* 捐款感謝狀檢視視窗 */}
+{selectedDonationThankYou && (
+  <div
+    className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4"
+    onClick={() => setSelectedDonationThankYou(null)}
+  >
+    <div
+      className="relative max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-3"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        onClick={() => setSelectedDonationThankYou(null)}
+        className="mb-3 rounded-lg bg-gray-100 px-4 py-2 font-bold text-gray-800"
+      >
+        ✕ 關閉感謝狀
+      </button>
+
+      <img
+        src={selectedDonationThankYou}
+        alt="公益捐款感謝狀"
         className="mx-auto h-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain"
       />
     </div>
