@@ -2953,13 +2953,11 @@ const targetMonthKey =
   <button
     type="button"
     onClick={() =>
-      setSelectedDonationThankYou(
-        item.thankYouCertificateUrl
-      )
+      window.open(item.thankYouCertificateUrl, "_blank")
     }
     className="inline-flex items-center justify-center rounded-lg border border-green-300 bg-green-50 px-3 py-2 font-bold text-green-700 hover:bg-green-100"
   >
-    查看感謝狀
+    👁 查看感謝狀
   </button>
 )}
     
