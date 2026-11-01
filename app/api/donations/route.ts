@@ -75,6 +75,13 @@ export async function GET(request: Request) {
               /^https:\/\//i.test(data.receiptUrl)
                 ? data.receiptUrl
                 : "",
+                // 新增：感謝狀圖片網址
+            thankYouCertificateUrl:
+              typeof data.thankYouCertificateUrl === "string" &&
+              /^https:\/\//i.test(data.thankYouCertificateUrl)
+                ? data.thankYouCertificateUrl
+                : "",
+
             createdAt:
               data.createdAt?.toDate?.()?.toISOString?.() || null,
           };
@@ -169,6 +176,12 @@ export async function GET(request: Request) {
           /^https:\/\//i.test(data.receiptUrl)
             ? data.receiptUrl
             : "",
+        // 新增：感謝狀圖片網址
+        thankYouCertificateUrl:
+          typeof data.thankYouCertificateUrl === "string" &&
+          /^https:\/\//i.test(data.thankYouCertificateUrl)
+            ? data.thankYouCertificateUrl
+            : "",    
         createdAt:
           data.createdAt?.toDate?.()?.toISOString?.() || null,
       };
