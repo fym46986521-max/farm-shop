@@ -2262,11 +2262,11 @@ if (!liff.isLoggedIn()) {
   )}
 
   {/* 感謝狀 */}
-  {record.thankYouUrl ? (
+  {record.thankYouCertificateUrl ? (
     <button
       type="button"
       onClick={() =>
-        setSelectedDonationThankYou(record.thankYouUrl)
+        setSelectedDonationThankYou(record.thankYouCertificateUrl)
       }
       className="flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 font-bold text-amber-700 transition hover:bg-amber-100"
     >
