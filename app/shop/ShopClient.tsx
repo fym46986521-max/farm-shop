@@ -2413,19 +2413,7 @@ if (!liff.isLoggedIn()) {
                 📷 查看捐贈照片
               </button>
 
-              <button
-                type="button"
-                disabled={!record.receiptImageUrl}
-                onClick={() =>
-                  setSelectedDonationImage({
-                    title: "🧾 當周捐贈感謝狀",
-                    imageUrl: record.receiptImageUrl,
-                  })
-                }
-                className="w-full rounded-xl border border-green-200 bg-green-50 px-4 py-4 font-bold text-green-800 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
-              >
-                🧾 查看當周感謝狀
-              </button>
+              
             </div>
           </article>
         ))}

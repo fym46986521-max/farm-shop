@@ -3191,6 +3191,8 @@ const targetMonthKey =
         </label>
         <input
           type="date"
+          value={donationDate}
+          onChange={(e) => setDonationDate(e.target.value)}
           className="w-full rounded border p-2"
         />
       </div>
