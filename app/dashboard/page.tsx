@@ -809,7 +809,8 @@ const DONATIONS_PAGE_SIZE = 10;
 const [donationOrganizations, setDonationOrganizations] = useState<any[]>([]);
 const [selectedOrganization, setSelectedOrganization] = useState("");
 const [newOrganization, setNewOrganization] = useState("");
-
+const [selectedDonationThankYou, setSelectedDonationThankYou] =
+  useState<string | null>(null);
 // 一菜一心：每週捐贈紀錄
 const [weeklyDonationRecords, setWeeklyDonationRecords] = useState<any[]>([]);
 const [donationDate, setDonationDate] = useState(
@@ -1772,6 +1773,52 @@ const handleUploadDonationReceipt = async (
   } catch (error) {
     console.error("上傳捐款收據失敗：", error);
     alert("收據上傳失敗，請檢查 Firebase Storage 與 Firestore 權限。");
+  }
+};
+// 上傳捐款感謝狀
+const handleUploadThankYouCertificate = async (
+  donationId: string,
+  file: File
+) => {
+  if (!file.type.startsWith("image/")) {
+    alert("請選擇圖片格式的感謝狀。");
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert("感謝狀圖片不能超過 10 MB。");
+    return;
+  }
+
+  try {
+    // 上傳圖片至 Firebase Storage
+    const thankYouCertificateUrl = await uploadDonationImage(
+      file,
+      "thank-you-certificates"
+    );
+
+    if (!thankYouCertificateUrl) {
+      throw new Error("沒有取得感謝狀圖片網址");
+    }
+
+    // 儲存感謝狀圖片網址至該筆捐款資料
+    await updateDoc(doc(db, "donations", donationId), {
+      thankYouCertificateUrl,
+    });
+
+    // 即時更新後台畫面
+    setDonations((prev: any[]) =>
+      prev.map((item) =>
+        item.id === donationId
+          ? { ...item, thankYouCertificateUrl }
+          : item
+      )
+    );
+
+    alert("感謝狀上傳成功！");
+  } catch (error) {
+    console.error("上傳捐款感謝狀失敗：", error);
+    alert("感謝狀上傳失敗，請檢查 Firebase Storage 與 Firestore 權限。");
   }
 };
 // 刪除捐款資料
@@ -2878,9 +2925,46 @@ const targetMonthKey =
         👁 預覽收據
       </button>
     )}
+{/* 感謝狀上傳按鈕 */}
+<label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 font-bold text-amber-700 hover:bg-amber-100">
+  {item.thankYouCertificateUrl
+    ? "更換感謝狀"
+    : "上傳感謝狀"}
 
+  <input
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+
+      if (file) {
+        handleUploadThankYouCertificate(
+          item.id,
+          file
+        );
+      }
+
+      e.currentTarget.value = "";
+    }}
+  />
+</label>
+{item.thankYouCertificateUrl && (
+  <button
+    type="button"
+    onClick={() =>
+      setSelectedDonationThankYou(
+        item.thankYouCertificateUrl
+      )
+    }
+    className="inline-flex items-center justify-center rounded-lg border border-green-300 bg-green-50 px-3 py-2 font-bold text-green-700 hover:bg-green-100"
+  >
+    查看感謝狀
+  </button>
+)}
     
   </div>
+  
 </td>
 {/* 操作：只保留刪除按鈕 */}
 <td className="w-[100px] border p-3 text-center">
